@@ -2,45 +2,45 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../redux/cartSlice';
-import { products as staticProducts } from '../data/products';
+import { products as staticProducts } from '../data/products'; // Rename to staticProducts
 import { FaStar, FaSpinner } from 'react-icons/fa';
 
 const ProductDetails = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
   
+  // State for the active product data
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   
+  // Selection States
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
 
-  // --- FETCH DATA ---
+  // --- FETCH DATA EFFECT ---
   useEffect(() => {
     const fetchProductDetails = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`http://localhost:5000/api/orders/${id}`); // Assuming generic product fetch
-        // Note: In reality, this endpoint should be /api/products/:id, not /api/orders
-        // I will assume you have a GET /api/products/:id route.
-        const productRes = await fetch(`http://localhost:5000/api/products/${id}`);
+        // 1. Try to fetch from your API (Database)
+        const response = await fetch(`https://fashion-store-ak.onrender.com/api/products/${id}`);
         
-        if (productRes.ok) {
-          const data = await productRes.json();
+        if (response.ok) {
+          const data = await response.json();
           setProduct(data);
-          // Auto-select first option
-          if (data.colors?.length > 0) setSelectedColor(data.colors[0]);
-          if (data.sizes?.length > 0) setSelectedSize(data.sizes[0]); 
+          // Auto-select first color if available
+          if (data.colors && data.colors.length > 0) setSelectedColor(data.colors[0]);
         } else {
-          throw new Error("DB Fetch failed");
+          throw new Error("Not found in DB");
         }
       } catch (error) {
-        // Fallback to static data
+        // 2. Fallback: If API fails (e.g. ID is "1"), look in static file
+        // We assume static IDs are numbers, API IDs are strings
         const staticItem = staticProducts.find((p) => p.id === parseInt(id) || p.id === id);
         if (staticItem) {
           setProduct(staticItem);
-          if (staticItem.colors?.length > 0) setSelectedColor(staticItem.colors[0]);
-          if (staticItem.sizes?.length > 0) setSelectedSize(staticItem.sizes[0]);
+        } else {
+          console.error("Product not found anywhere");
         }
       } finally {
         setLoading(false);
@@ -53,13 +53,9 @@ const ProductDetails = () => {
   const handleAddToCart = () => {
     if (!product) return;
     
-    // Validation
-    if (product.sizes?.length > 0 && !selectedSize) {
+    // Validation: Require size only if the product HAS sizes
+    if (product.sizes && product.sizes.length > 0 && !selectedSize) {
       alert("Please select a size!");
-      return;
-    }
-    if (product.colors?.length > 0 && !selectedColor) {
-      alert("Please select a color!");
       return;
     }
 
@@ -71,54 +67,66 @@ const ProductDetails = () => {
     alert("Item added to cart!");
   };
 
-  if (loading) return <div className="flex justify-center items-center h-screen"><FaSpinner className="animate-spin text-4xl text-gray-400" /></div>;
-  if (!product) return <div className="text-center py-20 text-2xl text-gray-500">Product not found.</div>;
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen"><FaSpinner className="animate-spin text-4xl text-gray-400" /></div>;
+  }
+
+  if (!product) {
+    return <div className="text-center py-20 text-2xl text-gray-500">Product not found.</div>;
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="flex flex-col md:flex-row gap-12">
         
-        {/* Image */}
+        {/* Product Image */}
         <div className="md:w-1/2 flex justify-center bg-gray-50 rounded-xl p-6">
-          <img src={product.image} alt={product.name} className="max-h-[600px] w-full object-contain drop-shadow-xl rounded-lg" />
+          <img 
+            src={product.image} 
+            alt={product.name} 
+            className="max-h-[600px] w-full object-contain drop-shadow-xl rounded-lg" 
+          />
         </div>
 
-        {/* Details */}
+        {/* Details Info */}
         <div className="md:w-1/2">
           <span className="text-sm text-gray-500 uppercase tracking-widest font-semibold">{product.category || 'Collection'}</span>
           <h2 className="text-4xl font-black mb-4 text-gray-900 mt-2">{product.name}</h2>
-          <p className="text-3xl font-bold text-blue-600 mb-6">₹{product.price}</p>
-          <p className="text-gray-600 mb-8 leading-relaxed text-lg">{product.description}</p>
           
-          {/* --- COLORS SECTION --- */}
+          <div className="flex items-center mb-6">
+             <div className="flex text-yellow-400 text-sm">
+                {[...Array(5)].map((_, i) => <FaStar key={i} />)}
+             </div>
+             <span className="text-gray-400 text-sm ml-2">(150 Reviews)</span>
+          </div>
+
+          <p className="text-3xl font-bold text-blue-600 mb-6">₹{product.price}</p>
+          
+          <p className="text-gray-600 mb-8 leading-relaxed text-lg">
+            {product.description}
+          </p>
+          
+          {/* DYNAMIC COLORS SECTION */}
           {product.colors && product.colors.length > 0 && (
             <div className="mb-6">
-                <span className="font-bold text-gray-800 block mb-3">Select Color:</span>
-                <div className="flex gap-4">
+                <span className="font-bold text-gray-800 block mb-2">Select Color:</span>
+                <div className="flex gap-3">
                     {product.colors.map((c, index) => (
                         <button 
                             key={index}
                             onClick={() => setSelectedColor(c)}
-                            // This CSS creates the "Frame" effect
-                            className={`w-10 h-10 rounded-full transition-all duration-300 relative flex items-center justify-center 
-                                ${selectedColor === c 
-                                    ? 'ring-2 ring-offset-4 ring-black scale-110' // Selected: Black ring with white gap (offset)
-                                    : 'hover:scale-110 ring-1 ring-transparent' // Not selected
-                                }`}
-                            style={{ backgroundColor: c }}
+                            className={`w-10 h-10 rounded-full border-2 transition-all ${
+                                selectedColor === c ? 'border-gray-900 scale-110 ring-2 ring-offset-2 ring-gray-300' : 'border-transparent hover:scale-110'
+                            }`}
+                            style={{ backgroundColor: c, boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}
                             title={c}
-                        >
-                          {/* Optional: Checkmark inside if selected for extra clarity */}
-                          {selectedColor === c && (
-                             <span className="block w-2 h-2 bg-white rounded-full shadow-sm" /> 
-                          )}
-                        </button>
+                        />
                     ))}
                 </div>
             </div>
           )}
 
-          {/* --- SIZES SECTION --- */}
+          {/* DYNAMIC SIZES SECTION */}
           {product.sizes && product.sizes.length > 0 && (
             <div className="mb-8">
               <span className="font-bold text-gray-800 block mb-2">Select Size:</span>

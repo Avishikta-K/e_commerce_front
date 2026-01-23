@@ -355,7 +355,7 @@ const Shop = () => {
   useEffect(() => {
     const fetchMenProducts = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/products?category=Men');
+        const res = await fetch('https://fashion-store-ak.onrender.com/api/products?category=Men');
         const data = await res.json();
         
         // Map MongoDB _id to the simple id format used by ProductCard
