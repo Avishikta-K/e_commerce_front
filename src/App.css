@@ -1,0 +1,170 @@
+/* 1. Import a modern font (Google Fonts: Poppins) */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+/* 2. Tailwind Directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 3. Global Styles */
+:root {
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  
+  /* Modern E-commerce Color Palette */
+  --primary-color: #000000;
+  --secondary-color: #f3f4f6;
+  --accent-color: #ef4444; /* Red for sales/badges */
+  
+  color-scheme: light;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #ffffff;
+  color: #1a1a1a;
+}
+
+/* 4. Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 5. Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1; 
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888; 
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555; 
+}
+
+/* 6. Utility Helper for links */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font-family: inherit;
+}
+
+/* =========================================
+   7. ORDER HISTORY PAGE STYLES
+   ========================================= */
+
+/* Card hover effect */
+.order-history-card {
+  transition: all 0.2s ease-in-out;
+  border: 1px solid transparent;
+}
+
+.order-history-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+  border-color: #e5e7eb;
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-delivered {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.status-processing {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.status-cancelled {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.order-timeline-line {
+  position: absolute;
+  left: 15px;
+  top: 30px;
+  bottom: 0;
+  width: 2px;
+  background-color: #e5e7eb;
+  z-index: 0;
+}
+
+/* =========================================
+   8. CHECKOUT ANIMATIONS (NEW)
+   ========================================= */
+
+/* The Running Cart Animation */
+@keyframes run-cart {
+  0% { transform: translateX(-100px) skewX(-10deg); opacity: 0; }
+  60% { transform: translateX(10px) skewX(5deg); opacity: 1; }
+  80% { transform: translateX(-5px) skewX(-2deg); }
+  100% { transform: translateX(0) skewX(0); }
+}
+
+/* NEW: Speed Lines streak effect */
+@keyframes speed-streak {
+  0% {
+    transform: translateX(-60px) scaleX(0.1); /* Start far back and short */
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8; /* Quickly become visible */
+  }
+  100% {
+    transform: translateX(20px) scaleX(1.5); /* Move forward, stretch out */
+    opacity: 0; /* Fade out completely as the cart stops */
+  }
+}
+
+/* The Popping Tick Mark */
+@keyframes pop-tick {
+  0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* Smooth Modal Entrance */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
