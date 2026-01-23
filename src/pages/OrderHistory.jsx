@@ -171,7 +171,7 @@ const OrderHistory = () => {
     try {
       if (!isBackgroundUpdate) setLoading(true);
       
-      const response = await fetch('http://localhost:5000/api/orders');
+      const response = await fetch('https://fashion-store-ak.onrender.com/api/orders');
       const data = await response.json();
       
       // 1. GET HIDDEN ORDERS FROM LOCAL STORAGE
