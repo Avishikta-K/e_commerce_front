@@ -41,7 +41,8 @@ const ProductCard = ({ product }) => {
           {/* Attach the ref to the image so we can clone it */}
           <img 
             ref={imgRef}
-            src={product.image} 
+            // 👇 THIS IS THE FIX: It swaps 'localhost' for your live server link
+            src={product.image ? product.image.replace("http://localhost:5000", "https://fashion-store-ak.onrender.com") : ''} 
             alt={product.name} 
             className="w-full h-full object-cover transform group-hover:scale-105 transition duration-500" 
           />
