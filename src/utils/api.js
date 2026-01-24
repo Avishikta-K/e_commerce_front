@@ -12,7 +12,6 @@ const api = axios.create({
 });
 
 // 3. Request Interceptor: Auto-attach JWT Token
-// This ensures that if a user is logged in, their token is sent with every request.
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('authToken');
@@ -28,7 +27,6 @@ api.interceptors.request.use(
 
 // --- PRODUCT API FUNCTIONS ---
 
-// Fetch all products
 export const getProducts = async () => {
   try {
     const response = await api.get('/products');
@@ -39,7 +37,6 @@ export const getProducts = async () => {
   }
 };
 
-// Fetch a single product by ID
 export const getProductById = async (id) => {
   try {
     const response = await api.get(`/products/${id}`);
@@ -70,9 +67,19 @@ export const verifyOtp = async (email, otp) => {
   }
 };
 
-// --- ORDER API FUNCTIONS (NEW) ---
+// --- MISSING FUNCTION 1: LOGOUT ---
+export const logoutUser = async (email) => {
+  try {
+    const response = await api.post('/logout', { email });
+    return response.data;
+  } catch (error) {
+    console.error("Logout backend notification failed", error);
+    return { success: false };
+  }
+};
 
-// Create a new order (Protected by Token)
+// --- ORDER API FUNCTIONS ---
+
 export const createOrder = async (orderData) => {
   try {
     const response = await api.post('/orders', orderData);
@@ -83,7 +90,6 @@ export const createOrder = async (orderData) => {
   }
 };
 
-// Get logged-in user's orders (Protected by Token)
 export const getUserOrders = async () => {
   try {
     const response = await api.get('/orders');
@@ -94,7 +100,7 @@ export const getUserOrders = async () => {
   }
 };
 
-// --- USER PROFILE ---
+// --- USER & ADMIN API FUNCTIONS ---
 
 export const getUserProfile = async () => {
   try {
@@ -102,6 +108,17 @@ export const getUserProfile = async () => {
     return response.data;
   } catch (error) {
     throw error.response ? error.response.data : { message: 'Failed to fetch profile' };
+  }
+};
+
+// --- MISSING FUNCTION 2: ADMIN ACTIVITY LOG ---
+export const getUserActivity = async () => {
+  try {
+    const response = await api.get('/users/activity');
+    return response.data;
+  } catch (error) {
+    console.error("Fetch activity failed:", error);
+    throw error.response ? error.response.data : { message: 'Failed to fetch activity' };
   }
 };
 
