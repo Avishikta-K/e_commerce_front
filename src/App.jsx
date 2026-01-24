@@ -22,7 +22,7 @@ const ProtectedRoute = ({ children }) => {
   // Check for the real JWT token
   const token = localStorage.getItem('authToken');
   
-  // Basic validation: Token must exist and be of a reasonable length (JWTs are long)
+  // Basic validation: Token must exist and be of a reasonable length
   const isAuthenticated = token && token.length > 50; 
 
   if (!isAuthenticated) {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom'; // Not needed for hard redirect
 import { FaSignOutAlt, FaCog, FaBell, FaLock, FaPalette, FaCut, FaTshirt, FaTag } from 'react-icons/fa';
 import { logoutUser } from '../utils/api'; // Import logout API utility
 
@@ -46,19 +46,32 @@ const AtelierToggle = ({ label, isOn, onToggle }) => (
 );
 
 const Settings = () => {
-  const navigate = useNavigate();
+  // const navigate = useNavigate(); // Not using this for logout anymore
   
   // Mock State
   const [notifications, setNotifications] = useState(true);
   const [sounds, setSounds] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
-  // --- UPDATED LOGOUT HANDLER ---
+  // --- UPDATED LOGOUT HANDLER (THE FIX) ---
   const handleLogout = async () => {
-    // Retrieve email from storage (you should save this during login in OTP.jsx)
-    const email = localStorage.getItem('userEmail'); 
-    // Calls the backend logout route and then clears local storage
-    await logoutUser(email);
+    try {
+        // 1. Get email
+        const email = localStorage.getItem('userEmail'); 
+        
+        // 2. Notify Backend (Fire and forget, or await if fast)
+        if (email) {
+            await logoutUser(email);
+        }
+    } catch (error) {
+        console.error("Logout log failed", error);
+    } finally {
+        // 3. CRITICAL: Clear ALL Data immediately
+        localStorage.clear(); 
+        
+        // 4. CRITICAL: Force Hard Redirect to Login Page
+        window.location.href = '/login'; 
+    }
   };
 
   // --- ANIMATION CONFIGURATION ---
