@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { usePageTransition } from '../context/TransitionContext';
+import { useNavigate } from 'react-router-dom';
 import { FaSignOutAlt, FaCog, FaBell, FaLock, FaPalette, FaCut, FaTshirt, FaTag } from 'react-icons/fa';
+import { logoutUser } from '../utils/api'; // Import logout API utility
 
 // --- UTILITY: MASKING TAPE EFFECT ---
 const MaskingTape = ({ className }) => (
@@ -45,20 +46,22 @@ const AtelierToggle = ({ label, isOn, onToggle }) => (
 );
 
 const Settings = () => {
-  const { navigateWithTransition } = usePageTransition();
+  const navigate = useNavigate();
   
   // Mock State
   const [notifications, setNotifications] = useState(true);
   const [sounds, setSounds] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
-  const handleLogout = () => {
-    localStorage.removeItem('authToken'); 
-    localStorage.removeItem('user');
-    navigateWithTransition('/login');
+  // --- UPDATED LOGOUT HANDLER ---
+  const handleLogout = async () => {
+    // Retrieve email from storage (you should save this during login in OTP.jsx)
+    const email = localStorage.getItem('userEmail'); 
+    // Calls the backend logout route and then clears local storage
+    await logoutUser(email);
   };
 
-  // --- ANIMATION CONFIGURATION (UPDATED SPEEDS) ---
+  // --- ANIMATION CONFIGURATION ---
 
   // 1. The Giant Gear (Watermark Style)
   const gearVariants = {
@@ -68,12 +71,12 @@ const Settings = () => {
     },
     enter: { 
       scale: 1, opacity: 0.05, 
-      transition: { duration: 0.8, type: "spring", bounce: 0.3 } // Faster entrance
+      transition: { duration: 0.8, type: "spring", bounce: 0.3 } 
     },
     side: { 
       left: "90%", x: "-50%", 
       scale: 1.8, opacity: 0.03,
-      transition: { delay: 0.8, duration: 1.5, ease: "easeInOut" } // Reduced delay from 1.5s
+      transition: { delay: 0.8, duration: 1.5, ease: "easeInOut" } 
     }
   };
 
@@ -82,7 +85,6 @@ const Settings = () => {
     hidden: { opacity: 0 },
     visible: { 
       opacity: 1, 
-      // Dramatically reduced delayChildren from 1.8s to 0.5s
       transition: { staggerChildren: 0.1, delayChildren: 0.5 } 
     }
   };
@@ -123,10 +125,10 @@ const Settings = () => {
         <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }} // Reduced from 2.2s
+            transition={{ delay: 0.3 }}
             className="flex flex-col md:flex-row justify-between items-end mb-16 relative"
         >
-             {/* Title */}
+            {/* Title */}
             <div className="relative">
                 <h1 className="text-8xl font-black uppercase tracking-tighter leading-none relative z-10 mix-blend-darken">
                    Set<br/>things
@@ -249,7 +251,7 @@ const Settings = () => {
         <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
-            transition={{ delay: 1.2 }} // Reduced from 3s
+            transition={{ delay: 1.2 }} 
             className="mt-20 flex justify-center"
         >
              <div className="bg-white px-6 py-4 shadow-sm border border-gray-200 text-center relative">

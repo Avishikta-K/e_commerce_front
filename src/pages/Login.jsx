@@ -1,21 +1,86 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useMotionTemplate, useMotionValue, useSpring, AnimatePresence } from 'framer-motion';
-import { FaGoogle, FaApple, FaArrowRight, FaLock } from 'react-icons/fa';
+import { FaGoogle, FaApple, FaArrowRight, FaLock, FaUserCircle } from 'react-icons/fa';
+import { sendOtp } from '../utils/api'; // <--- IMPORT API
+
+// --- COMPONENT: GOOGLE ACCOUNT MODAL ---
+const GoogleAccountModal = ({ isOpen, onClose, onSelect }) => {
+  const accounts = [
+    { id: 1, name: "Avishikta Karali", email: "avishikta.karali@example.com", color: "bg-purple-600" },
+    { id: 2, name: "Fashion Store Dev", email: "dev@fashion.store", color: "bg-blue-600" },
+    { id: 3, name: "Use another account", email: "", color: "bg-gray-500", icon: true }
+  ];
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white text-gray-900 w-full max-w-[400px] rounded-lg shadow-2xl overflow-hidden relative"
+            >
+              <div className="p-6 pb-2 text-center">
+                 <FaGoogle className="text-3xl text-gray-700 mx-auto mb-4" />
+                 <h3 className="text-xl font-medium text-gray-800">Choose an account</h3>
+                 <p className="text-sm text-gray-600">to continue to Fashion.Store</p>
+              </div>
+
+              <div className="py-4">
+                 {accounts.map((acc) => (
+                   <div 
+                     key={acc.id}
+                     onClick={() => onSelect(acc)}
+                     className="px-6 py-3 flex items-center gap-4 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-none transition-colors"
+                   >
+                     {acc.icon ? (
+                       <div className={`w-8 h-8 rounded-full ${acc.color} flex items-center justify-center text-white text-xs`}>
+                         <FaUserCircle />
+                       </div>
+                     ) : (
+                       <div className={`w-8 h-8 rounded-full ${acc.color} flex items-center justify-center text-white font-bold text-sm`}>
+                         {acc.name.charAt(0)}
+                       </div>
+                     )}
+                     <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-800">{acc.name}</p>
+                        {acc.email && <p className="text-xs text-gray-500">{acc.email}</p>}
+                     </div>
+                   </div>
+                 ))}
+              </div>
+
+              <div className="bg-gray-50 p-4 border-t border-gray-200 text-xs text-gray-500 text-center">
+                 To continue, Google will share your name, email address, and language preference with Fashion.Store.
+              </div>
+            </motion.div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
 
 // --- THE HANGING LIGHT SWITCH COMPONENT ---
 const LightSwitch = ({ onClick }) => {
   const [isHovered, setIsHovered] = useState(false);
-  
-  // Spring physics for the pull string
   const springConfig = { stiffness: 300, damping: 10 };
   const y = useSpring(0, springConfig);
 
   const handlePull = () => {
-    // Pull down animation
     y.set(60);
     setTimeout(() => {
-        y.set(0); // Spring back up
+        y.set(0); 
         onClick();
     }, 150);
   };
@@ -26,16 +91,12 @@ const LightSwitch = ({ onClick }) => {
          onMouseLeave={() => setIsHovered(false)}
          onClick={handlePull}
     >
-        {/* The Cord Line */}
         <motion.div 
             style={{ height: useMotionTemplate`calc(150px + ${y}px)` }}
             className="w-0.5 bg-gray-700 group-hover:bg-gray-500 transition-colors duration-300 relative"
         >
-             {/* The Handle/Knob */}
              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-4 h-12 bg-gradient-to-b from-gray-600 to-gray-800 rounded-full shadow-lg border-t border-gray-500" />
         </motion.div>
-        
-        {/* Tooltip */}
         <motion.span 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 20 : 10 }}
@@ -51,8 +112,16 @@ const Login = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isLightOn, setIsLightOn] = useState(false);
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
 
-  // --- MOUSE SPOTLIGHT EFFECT ---
+  // --- 1. NEW: Redirect if already logged in ---
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (token && token.length > 50) {
+        navigate('/');
+    }
+  }, [navigate]);
+
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
@@ -63,26 +132,49 @@ const Login = () => {
   }
 
   const handleToggleLight = () => {
-      // Small delay to sync with the "snap back" of the cord
       setTimeout(() => {
           setIsLightOn(true);
       }, 100);
   };
 
-  const handleGoogleLogin = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      navigate('/otp');
-    }, 2000);
+  const handleGoogleBtnClick = () => {
+    setShowGoogleModal(true);
   };
 
-  // Ambient Floating Particles
+  // --- 2. UPDATED: Call Backend API ---
+  const handleAccountSelect = async (account) => {
+    setShowGoogleModal(false);
+    setIsLoading(true);
+    
+    try {
+        // Call your Render Backend
+        const response = await sendOtp(account.email);
+        
+        // Pass Email AND the Code (for demo visuals) to OTP page
+        navigate('/otp', { 
+            state: { 
+                email: account.email, 
+                demoCode: response.code 
+            } 
+        });
+    } catch (error) {
+        console.error("Login Error:", error);
+        alert("Failed to connect to server. Please try again.");
+        setIsLoading(false);
+    }
+  };
+
   const particles = Array.from({ length: 20 });
 
   return (
     <div className="w-full h-screen bg-black font-sans relative overflow-hidden">
       
-      {/* 1. THE SWITCH (Always visible/interactive until clicked) */}
+      <GoogleAccountModal 
+        isOpen={showGoogleModal} 
+        onClose={() => setShowGoogleModal(false)} 
+        onSelect={handleAccountSelect} 
+      />
+
       <AnimatePresence>
         {!isLightOn && (
             <motion.div 
@@ -94,7 +186,6 @@ const Login = () => {
         )}
       </AnimatePresence>
 
-      {/* 2. THE DARK ROOM (Initial State) */}
       <AnimatePresence>
         {!isLightOn && (
             <motion.div 
@@ -119,37 +210,27 @@ const Login = () => {
         )}
       </AnimatePresence>
 
-      {/* 3. THE MAIN CONTENT (Hidden by Darkness until Light is On) */}
       <motion.div 
         className="w-full h-full flex"
-        initial={{ 
-            clipPath: 'circle(0% at 50% 0%)', // Starts as a tiny dot at top center
-            filter: 'brightness(0)' 
-        }} 
+        initial={{ clipPath: 'circle(0% at 50% 0%)', filter: 'brightness(0)' }} 
         animate={isLightOn ? { 
             clipPath: [
-                'circle(0% at 50% 0%)',    // Start
-                'circle(15% at 50% 10%)',  // Flicker 1
-                'circle(10% at 50% 10%)',  // Flicker off
-                'circle(150% at 50% 0%)'   // Full blast
+                'circle(0% at 50% 0%)',    
+                'circle(15% at 50% 10%)',  
+                'circle(10% at 50% 10%)',  
+                'circle(150% at 50% 0%)'   
             ],
             filter: [
-                'brightness(0.2)', // Dim
-                'brightness(1.5)', // Flash bright
-                'brightness(0.5)', // Dim
-                'brightness(1)'    // Normal
+                'brightness(0.2)', 
+                'brightness(1.5)', 
+                'brightness(0.5)', 
+                'brightness(1)'    
             ]
         } : {}}
-        transition={{ 
-            duration: 1.5, 
-            times: [0, 0.1, 0.2, 1], // Timing for the flicker effect
-            ease: "circOut" 
-        }}
+        transition={{ duration: 1.5, times: [0, 0.1, 0.2, 1], ease: "circOut" }}
       >
-          
-          {/* LEFT: Cinematic Image Section */}
           <motion.div 
-            initial={{ x: '-10%' }} // Slight parallax start
+            initial={{ x: '-10%' }} 
             animate={{ x: 0 }}
             className="hidden md:block w-1/2 h-full relative overflow-hidden"
           >
@@ -160,7 +241,6 @@ const Login = () => {
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent" />
             
-            {/* Animated Text Reveal (Only triggers after light is on) */}
             {isLightOn && (
                 <div className="absolute bottom-16 left-16 text-white z-10">
                 <div className="overflow-hidden">
@@ -190,51 +270,29 @@ const Login = () => {
             )}
           </motion.div>
 
-          {/* RIGHT: Interactive Form Section */}
           <div 
             className="w-full md:w-1/2 h-full flex flex-col justify-center items-center px-8 relative bg-gray-900 group"
             onMouseMove={handleMouseMove}
           >
-            {/* Top Light Source Simulation (The "Bulb" look) */}
             <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-blue-500/10 to-transparent pointer-events-none" />
 
-            {/* Spotlight Effect Layer */}
             <motion.div
               className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-300 group-hover:opacity-100"
               style={{
                 background: useMotionTemplate`
-                  radial-gradient(
-                    650px circle at ${mouseX}px ${mouseY}px,
-                    rgba(29, 78, 216, 0.15),
-                    transparent 80%
-                  )
+                  radial-gradient(650px circle at ${mouseX}px ${mouseY}px, rgba(29, 78, 216, 0.15), transparent 80%)
                 `,
               }}
             />
 
-            {/* Ambient Particles */}
             {particles.map((_, i) => (
                 <motion.div 
                     key={i}
                     className="absolute bg-white/10 rounded-full"
-                    initial={{ 
-                        x: Math.random() * window.innerWidth / 2, 
-                        y: Math.random() * window.innerHeight,
-                        scale: Math.random() * 0.5 
-                    }}
-                    animate={{ 
-                        y: [null, Math.random() * -100],
-                        opacity: [0, 0.5, 0]
-                    }}
-                    transition={{ 
-                        duration: Math.random() * 10 + 10, 
-                        repeat: Infinity, 
-                        ease: "linear" 
-                    }}
-                    style={{
-                        width: Math.random() * 4 + 1 + 'px',
-                        height: Math.random() * 4 + 1 + 'px',
-                    }}
+                    initial={{ x: Math.random() * window.innerWidth / 2, y: Math.random() * window.innerHeight, scale: Math.random() * 0.5 }}
+                    animate={{ y: [null, Math.random() * -100], opacity: [0, 0.5, 0] }}
+                    transition={{ duration: Math.random() * 10 + 10, repeat: Infinity, ease: "linear" }}
+                    style={{ width: Math.random() * 4 + 1 + 'px', height: Math.random() * 4 + 1 + 'px' }}
                 />
             ))}
             
@@ -242,7 +300,7 @@ const Login = () => {
                 <motion.div 
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ delay: 0.8, duration: 0.6 }} // Delayed until light is fully on
+                transition={{ delay: 0.8, duration: 0.6 }}
                 className="relative z-10 w-full max-w-md bg-white/5 backdrop-blur-xl p-8 rounded-3xl border border-white/10 shadow-2xl"
                 >
                 <div className="text-center mb-8">
@@ -257,7 +315,7 @@ const Login = () => {
                     <motion.button
                     whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.1)" }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={handleGoogleLogin}
+                    onClick={handleGoogleBtnClick}
                     className="w-full py-4 rounded-xl border border-white/20 bg-white/5 text-white font-bold flex items-center justify-center gap-3 transition-all duration-300 group relative overflow-hidden"
                     >
                     {isLoading && (
@@ -277,36 +335,8 @@ const Login = () => {
                         </>
                     )}
                     </motion.button>
-
-                    <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full py-4 rounded-xl border border-white/20 bg-white/5 text-white font-bold flex items-center justify-center gap-3 transition-all duration-300 opacity-50 cursor-not-allowed grayscale"
-                    >
-                    <FaApple className="text-xl" />
-                    <span>Continue with Apple</span>
-                    </motion.button>
+                    {/* ... other buttons ... */}
                 </div>
-
-                <div className="mt-8 flex items-center justify-between text-sm text-gray-500">
-                    <div className="h-[1px] w-1/3 bg-gradient-to-r from-transparent to-white/20" />
-                    <span className="text-xs uppercase tracking-widest">or email</span>
-                    <div className="h-[1px] w-1/3 bg-gradient-to-l from-transparent to-white/20" />
-                </div>
-
-                <form className="mt-8 space-y-6" onSubmit={(e) => e.preventDefault()}>
-                    <div className="space-y-2 group/input">
-                        <input 
-                        type="email" 
-                        disabled
-                        placeholder="name@example.com" 
-                        className="w-full px-6 py-4 rounded-xl bg-black/20 border border-white/10 text-white placeholder-gray-600 focus:outline-none transition-all opacity-50 cursor-not-allowed"
-                        />
-                    </div>
-                    <button disabled className="w-full py-4 bg-gray-800 rounded-xl text-gray-400 font-bold cursor-not-allowed flex items-center justify-center gap-2">
-                    Login <FaArrowRight className="text-xs" />
-                    </button>
-                </form>
                 </motion.div>
             )}
             

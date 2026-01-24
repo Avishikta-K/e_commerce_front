@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { clearCart } from '../redux/cartSlice';
 import { placeOrder } from '../redux/orderSlice';
+import { createOrder } from '../utils/api'; // <--- IMPORT API FUNCTION
 
 // --- Internal Component: Success Animation Modal (Unchanged) ---
 const OrderSuccessModal = ({ onNavigate }) => {
@@ -17,11 +18,10 @@ const OrderSuccessModal = ({ onNavigate }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity duration-300">
       <div className="bg-white p-10 rounded-2xl shadow-2xl flex flex-col items-center text-center max-w-sm w-full mx-4 animate-fade-in-up">
         <div className="relative w-32 h-32 mb-6 overflow-visible">
-          {/* ... (Your SVG Animation code remains the same) ... */}
           <svg className="absolute top-0 left-0 w-full h-full z-0 pointer-events-none" viewBox="0 0 128 128" style={{ overflow: 'visible' }}>
-             <line x1="-50" y1="40" x2="0" y2="40" stroke="#9ca3af" strokeWidth="4" strokeLinecap="round" style={{ animation: 'speed-streak 1s ease-out forwards', transformOrigin: 'center left' }} />
-             <line x1="-70" y1="64" x2="-20" y2="64" stroke="#9ca3af" strokeWidth="4" strokeLinecap="round" style={{ animation: 'speed-streak 1s ease-out 0.1s forwards', transformOrigin: 'center left' }} />
-             <line x1="-40" y1="88" x2="10" y2="88" stroke="#9ca3af" strokeWidth="4" strokeLinecap="round" style={{ animation: 'speed-streak 1s ease-out 0.05s forwards', transformOrigin: 'center left' }} />
+              <line x1="-50" y1="40" x2="0" y2="40" stroke="#9ca3af" strokeWidth="4" strokeLinecap="round" style={{ animation: 'speed-streak 1s ease-out forwards', transformOrigin: 'center left' }} />
+              <line x1="-70" y1="64" x2="-20" y2="64" stroke="#9ca3af" strokeWidth="4" strokeLinecap="round" style={{ animation: 'speed-streak 1s ease-out 0.1s forwards', transformOrigin: 'center left' }} />
+              <line x1="-40" y1="88" x2="10" y2="88" stroke="#9ca3af" strokeWidth="4" strokeLinecap="round" style={{ animation: 'speed-streak 1s ease-out 0.05s forwards', transformOrigin: 'center left' }} />
           </svg>
           <svg viewBox="0 0 24 24" className="relative z-10 w-full h-full text-black" style={{ animation: 'run-cart 1s ease-out forwards' }}>
             <path fill="currentColor" d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
@@ -82,50 +82,38 @@ const Checkout = () => {
     const orderPayload = {
         customer: formData,
         items: cartItems.map(item => ({
-            productId: item.id || item._id, // Handle both ID types just in case
+            productId: item.id || item._id, 
             name: item.name,
             quantity: item.quantity,
             price: item.price,
             image: item.image,
-            // --- UPDATED: SEND COLOR & SIZE TO BACKEND ---
             color: item.color,
             size: item.size
-            // ---------------------------------------------
         })),
         totalAmount: totalPrice
     };
 
     try {
-        const response = await fetch('https://fashion-store-ak.onrender.com/api/orders', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(orderPayload)
-        });
+        // --- UPDATED: Use createOrder from API (Sends Token Automatically) ---
+        const data = await createOrder(orderPayload);
 
-        const data = await response.json();
-
-        if (response.ok) {
-            const reduxOrderFormat = {
-                id: data._id,
-                date: new Date(data.date).toLocaleDateString(),
-                total: data.totalAmount.toFixed(2),
-                status: data.status,
-                items: data.items,
-                shippingInfo: data.customer
-            };
-            
-            dispatch(placeOrder(reduxOrderFormat));
-            dispatch(clearCart());
-            setIsOrderSuccess(true);
-        } else {
-            alert("Failed to place order: " + data.message);
-        }
+        // Success Logic
+        const reduxOrderFormat = {
+            id: data._id,
+            date: new Date(data.date).toLocaleDateString(),
+            total: data.totalAmount.toFixed(2),
+            status: data.status,
+            items: data.items,
+            shippingInfo: data.customer
+        };
+        
+        dispatch(placeOrder(reduxOrderFormat));
+        dispatch(clearCart());
+        setIsOrderSuccess(true);
 
     } catch (error) {
         console.error("Order Error:", error);
-        alert("Server error. Please try again.");
+        alert(error.message || "Failed to place order.");
     } finally {
         setLoading(false);
     }
@@ -192,27 +180,23 @@ const Checkout = () => {
                    <div>
                      <p className="font-medium text-sm text-gray-800 line-clamp-1">{item.name}</p>
                      
-                     {/* --- UPDATED: SHOW SIZE AND COLOR HERE --- */}
                      <div className="text-xs text-gray-500 flex items-center gap-2 mt-1">
                        <span>Qty: {item.quantity}</span>
                        
-                       {/* Size Badge */}
                        {item.size && (
                          <span className="bg-gray-200 px-1.5 py-0.5 rounded text-[10px] font-medium text-gray-700">
                            {item.size}
                          </span>
                        )}
 
-                       {/* Color Circle */}
                        {item.color && (
                          <span 
                            className="w-3 h-3 rounded-full border border-gray-300 shadow-sm" 
                            style={{ backgroundColor: item.color }} 
-                           title={item.color} // Tooltip on hover
+                           title={item.color} 
                          />
                        )}
                      </div>
-                     {/* ----------------------------------------- */}
 
                    </div>
                 </div>

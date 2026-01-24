@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FaCalendarAlt, 
-  FaClock, 
   FaChevronRight, 
   FaBoxOpen, 
   FaTimes, 
   FaPrint, 
   FaMapMarkerAlt, 
   FaSpinner,
-  FaTrash // Imported Trash Icon
+  FaTrash 
 } from 'react-icons/fa';
+import { getUserOrders } from '../utils/api'; // <--- IMPORT AUTHENTICATED API CALL
 
 // --- ANIMATED STATUS TRACKER (Unchanged) ---
 const AnimatedStatusTracker = ({ status }) => {
@@ -28,7 +28,6 @@ const AnimatedStatusTracker = ({ status }) => {
             transition={{ duration: 1, ease: "easeInOut" }}
         />
 
-        {/* STEPS MAPPING */}
         {steps.map((step, index) => (
             <div key={step} className="flex flex-col items-center bg-white px-2">
                 <motion.div 
@@ -171,8 +170,8 @@ const OrderHistory = () => {
     try {
       if (!isBackgroundUpdate) setLoading(true);
       
-      const response = await fetch('https://fashion-store-ak.onrender.com/api/orders');
-      const data = await response.json();
+      // --- UPDATED: Use the API utility that handles Token Authentication ---
+      const data = await getUserOrders(); 
       
       // 1. GET HIDDEN ORDERS FROM LOCAL STORAGE
       const hiddenOrders = JSON.parse(localStorage.getItem('hiddenOrders') || '[]');
@@ -214,7 +213,7 @@ const OrderHistory = () => {
     }
   };
 
-  // --- NEW: HANDLE LOCAL DELETE ---
+  // --- HANDLE LOCAL DELETE ---
   const handleDeleteOrder = (orderId) => {
     if (window.confirm("Are you sure you want to remove this order from your history?")) {
         // 1. Get current list
@@ -278,7 +277,7 @@ const OrderHistory = () => {
                             {order.status}
                         </div>
                         
-                        {/* --- NEW: DELETE BUTTON --- */}
+                        {/* --- DELETE BUTTON --- */}
                         <button 
                             onClick={() => handleDeleteOrder(order.id)}
                             className="text-gray-300 hover:text-red-500 transition-colors p-1"

@@ -14,8 +14,23 @@ import Login from './pages/Login';
 import OTP from './pages/OTP';     
 import Settings from './pages/Settings'; 
 import About from './pages/About'; 
-import Contact from './pages/Contact'; // 1. IMPORT CONTACT
+import Contact from './pages/Contact'; 
 import GestureController from './components/GestureController'; 
+
+// --- UPDATED: Protected Route Component ---
+const ProtectedRoute = ({ children }) => {
+  // Check for the real JWT token
+  const token = localStorage.getItem('authToken');
+  
+  // Basic validation: Token must exist and be of a reasonable length (JWTs are long)
+  const isAuthenticated = token && token.length > 50; 
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+};
 
 // Helper component to hide Navbar/Footer on Auth pages
 const Layout = ({ children }) => {
@@ -37,34 +52,28 @@ function App() {
       <TransitionProvider>
         <Layout>
           <Routes>
-            {/* AUTH ROUTES */}
+            {/* --- PUBLIC ROUTES --- */}
             <Route path="/login" element={<Login />} />
             <Route path="/otp" element={<OTP />} />
 
-            {/* MAIN APP ROUTES */}
-            <Route path="/" element={<Home />} />
-            <Route path="/shop" element={<Shop />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/product/:id" element={<ProductDetails />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/orders" element={<OrderHistory />} />
-            <Route path="/lookbook" element={<Lookbook />} />
-            <Route path="/about" element={<About />} />
+            {/* --- PROTECTED ROUTES --- */}
+            <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+            <Route path="/shop" element={<ProtectedRoute><Shop /></ProtectedRoute>} />
+            <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+            <Route path="/product/:id" element={<ProtectedRoute><ProductDetails /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+            <Route path="/orders" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
+            <Route path="/lookbook" element={<ProtectedRoute><Lookbook /></ProtectedRoute>} />
+            <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
+            <Route path="/contact" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             
-            {/* 2. ADD CONTACT ROUTE */}
-            <Route path="/contact" element={<Contact />} />
-
-            <Route path="/settings" element={<Settings />} />
-            
-            {/* DEFAULT REDIRECT: Start at Login */}
+            {/* DEFAULT REDIRECT */}
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </Layout>
-        
-        {/* Gesture Controller active on all pages */}
         <GestureController />
-        
       </TransitionProvider>
     </Router>
   );

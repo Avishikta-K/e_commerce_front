@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; 
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaCheckCircle, FaBell, FaLock, FaFingerprint } from 'react-icons/fa';
+import { verifyOtp } from '../utils/api'; 
 
 // --- COMPONENT: SLEEK NOTIFICATION ---
 const BrowserNotification = ({ code, isVisible }) => {
@@ -31,19 +32,32 @@ const BrowserNotification = ({ code, isVisible }) => {
 
 const OTP = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Retrieve data passed from Login page
+  const userEmail = location.state?.email;
+  const passedDemoCode = location.state?.demoCode;
+
   const [otp, setOtp] = useState(['', '', '', '']);
-  const [generatedCode, setGeneratedCode] = useState([]);
+  const [displayCode, setDisplayCode] = useState([]);
   const [showNotification, setShowNotification] = useState(false);
   const [status, setStatus] = useState('generating');
 
-  // Background Particles
   const particles = Array.from({ length: 20 });
 
-  // --- SIMULATION LOGIC ---
   useEffect(() => {
+    // If no email (user tried to access /otp directly), go back to login
+    if (!userEmail) {
+        navigate('/login');
+        return;
+    }
+
     let timeouts = [];
-    const randomCode = Math.floor(1000 + Math.random() * 9000).toString().split('');
-    setGeneratedCode(randomCode);
+    
+    // Use the code from backend, or fallback if testing directly
+    const codeString = passedDemoCode || Math.floor(1000 + Math.random() * 9000).toString();
+    const codeArray = codeString.split('');
+    setDisplayCode(codeArray);
     
     // 1. Notify
     const notifTimer = setTimeout(() => {
@@ -55,29 +69,50 @@ const OTP = () => {
             setShowNotification(false);
             
             const startFillingTimer = setTimeout(() => {
-                // SWITCH TO BIOMETRIC MODE HERE
                 setStatus('filling'); 
 
                 // 3. Type digits one by one
-                randomCode.forEach((digit, index) => {
+                codeArray.forEach((digit, index) => {
                     const typeTimer = setTimeout(() => {
                         setOtp(prev => { const newOtp = [...prev]; newOtp[index] = digit; return newOtp; });
                         
-                        // 4. On last digit, immediately succeed
+                        // 4. On last digit, call API to verify
                         if (index === 3) {
-                            const successTimer = setTimeout(() => {
-                                setStatus('success');
-                                
-                                // 5. IMMEDIATE REDIRECT (500ms delay for visual confirmation)
-                                const navTimer = setTimeout(() => { 
-                                    // --- CRITICAL UPDATE: PASSING STATE ---
-                                    navigate('/', { state: { showIntro: true } }); 
-                                }, 500);
-                                timeouts.push(navTimer);
-                            }, 200); 
-                            timeouts.push(successTimer);
+                            // --- VERIFY WITH BACKEND ---
+                            const verifyWithBackend = async () => {
+                                try {
+                                    const data = await verifyOtp(userEmail, codeString);
+                                    
+                                    if (data.success) {
+                                        setStatus('success');
+                                        
+                                        // --- CRITICAL UPDATES FOR TRACKING ---
+                                        
+                                        // 1. Save the Token
+                                        localStorage.setItem('authToken', data.token);
+                                        
+                                        // 2. Save Logged In Flag (for App.jsx check)
+                                        localStorage.setItem('isLoggedIn', 'true');
+
+                                        // 3. Save Email (Needed for Logout Tracking in Settings.jsx)
+                                        localStorage.setItem('userEmail', userEmail); 
+                                        
+                                        // Redirect
+                                        setTimeout(() => { 
+                                            navigate('/', { state: { showIntro: true } }); 
+                                        }, 500);
+                                    }
+                                } catch (error) {
+                                    console.error("Verification failed", error);
+                                    alert("Verification failed. Please try again.");
+                                    navigate('/login');
+                                }
+                            };
+
+                            // Small delay for visual effect
+                            setTimeout(verifyWithBackend, 300);
                         }
-                    }, index * 250); // Speed of typing
+                    }, index * 250); 
                     timeouts.push(typeTimer);
                 });
             }, 500); 
@@ -88,12 +123,12 @@ const OTP = () => {
     timeouts.push(notifTimer);
 
     return () => timeouts.forEach(clearTimeout);
-  }, [navigate]);
+  }, [navigate, userEmail, passedDemoCode]);
 
   return (
     <div className="w-full h-screen bg-black font-sans flex items-center justify-center overflow-hidden relative">
       
-      <BrowserNotification code={generatedCode} isVisible={showNotification} />
+      <BrowserNotification code={displayCode} isVisible={showNotification} />
 
       {/* --- BACKGROUND AMBIENCE --- */}
       <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-blue-900/20 to-transparent pointer-events-none" />
@@ -102,38 +137,20 @@ const OTP = () => {
             <motion.div 
                 key={i}
                 className="absolute bg-white/10 rounded-full"
-                initial={{ 
-                    x: Math.random() * window.innerWidth, 
-                    y: Math.random() * window.innerHeight,
-                    scale: Math.random() * 0.5 
-                }}
-                animate={{ 
-                    y: [null, Math.random() * -100],
-                    opacity: [0, 0.5, 0]
-                }}
-                transition={{ 
-                    duration: Math.random() * 10 + 10, 
-                    repeat: Infinity, 
-                    ease: "linear" 
-                }}
-                style={{
-                    width: Math.random() * 4 + 1 + 'px',
-                    height: Math.random() * 4 + 1 + 'px',
-                }}
+                initial={{ x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight, scale: Math.random() * 0.5 }}
+                animate={{ y: [null, Math.random() * -100], opacity: [0, 0.5, 0] }}
+                transition={{ duration: Math.random() * 10 + 10, repeat: Infinity, ease: "linear" }}
+                style={{ width: Math.random() * 4 + 1 + 'px', height: Math.random() * 4 + 1 + 'px' }}
             />
         ))}
 
-      {/* --- MAIN CARD --- */}
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8 }}
         className="w-full max-w-[480px] p-8 md:p-12 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl relative z-10 shadow-2xl"
       >
-        
-        {/* --- ICON STATUS --- */}
         <div className="flex justify-center mb-8 relative">
-             {/* Glow behind icon */}
              <motion.div 
                 animate={{ 
                     opacity: status === 'filling' ? [0.5, 0.8, 0.5] : 0.5, 
@@ -144,7 +161,6 @@ const OTP = () => {
              />
 
              <div className="relative w-20 h-20 bg-gradient-to-br from-gray-800 to-black rounded-2xl flex items-center justify-center border border-white/10 shadow-xl overflow-hidden">
-                {/* Scanning Beam Effect during filling */}
                 {status === 'filling' && (
                     <motion.div 
                         initial={{ top: '-100%' }}
@@ -175,7 +191,6 @@ const OTP = () => {
              </div>
         </div>
 
-        {/* --- TEXT CONTENT --- */}
         <div className="text-center mb-10 space-y-2">
             <h2 className="text-3xl font-bold text-white tracking-tight">Verification</h2>
             <div className="h-6 flex items-center justify-center">
@@ -196,7 +211,6 @@ const OTP = () => {
             </div>
         </div>
 
-        {/* --- INPUTS --- */}
         <div className="flex justify-between gap-3 mb-12">
             {otp.map((digit, idx) => (
                 <motion.div
@@ -219,13 +233,11 @@ const OTP = () => {
                             </motion.span>
                         )}
                     </AnimatePresence>
-                    {/* Shine effect */}
                     {digit && <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />}
                 </motion.div>
             ))}
         </div>
 
-        {/* --- PROGRESS BAR --- */}
         <div className="w-full bg-gray-800/50 rounded-full h-1 overflow-hidden">
              <motion.div 
                 className={`h-full ${status === 'success' ? 'bg-green-500' : 'bg-gradient-to-r from-blue-600 to-purple-600'}`}
