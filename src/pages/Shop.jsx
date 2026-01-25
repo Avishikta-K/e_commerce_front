@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { products as staticProducts } from '../data/products'; // Rename import to avoid confusion
+import { products as staticProducts } from '../data/products'; // Keep as initial state or fallback
 import ProductCard from '../components/ProductCard';
 import { motion, useAnimation, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
 import { FaSnowflake, FaTag, FaArrowRight, FaShapes, FaArrowLeft, FaTimes } from 'react-icons/fa';
@@ -348,18 +348,19 @@ const StoreView = ({ category, items, onExit }) => {
 
 const Shop = () => {
   const [activeCategory, setActiveCategory] = useState(null); 
-  const [allProducts, setAllProducts] = useState(staticProducts); // Start with static data
+  const [allProducts, setAllProducts] = useState(staticProducts); 
   const location = useLocation();
 
-  // --- NEW: FETCH MEN'S PRODUCTS FROM API ---
+  // --- UPDATED: FETCH ALL PRODUCTS (MAKES EVERYTHING DYNAMIC) ---
   useEffect(() => {
-    const fetchMenProducts = async () => {
+    const fetchAllProducts = async () => {
       try {
-        const res = await fetch('https://fashion-store-ak.onrender.com/api/products?category=Men');
+        // Remove ?category=Men so we get EVERYTHING (Men, Women, Accessories, etc.)
+        const res = await fetch('https://fashion-store-ak.onrender.com/api/products');
         const data = await res.json();
         
         // Map MongoDB _id to the simple id format used by ProductCard
-        const formattedMenData = data.map(item => ({
+        const formattedData = data.map(item => ({
             id: item._id, // Use the database ID
             name: item.name,
             price: item.price,
@@ -369,19 +370,15 @@ const Shop = () => {
             colors: item.colors || []
         }));
 
-        // Combine API data + Static data
-        setAllProducts(prev => {
-            // Filter out any existing Men's items from static to avoid duplicates if you didn't delete them from data.js
-            const nonMenStatic = staticProducts.filter(p => p.category !== 'Men');
-            return [...formattedMenData, ...nonMenStatic];
-        });
+        // Set state with API data (overwrites staticProducts completely)
+        setAllProducts(formattedData);
 
       } catch (err) {
-        console.error("Failed to fetch Men's collection", err);
+        console.error("Failed to fetch products", err);
       }
     };
 
-    fetchMenProducts();
+    fetchAllProducts();
   }, []);
 
   useEffect(() => {
@@ -465,7 +462,7 @@ const Shop = () => {
             <AutomaticDoorTransition>
                 <StoreView 
                     category={activeCategory} 
-                    // FILTER FROM COMBINED LIST (API + STATIC)
+                    // FILTER FROM THE DYNAMIC LIST based on which room is active
                     items={allProducts.filter(p => p.category === activeCategory)}
                     onExit={() => setActiveCategory(null)}
                 />
