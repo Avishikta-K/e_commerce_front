@@ -7,7 +7,11 @@ import {
   FaSave, FaHistory, FaArrowRight, FaTint, FaBirthdayCake, FaPhone, FaLocationArrow
 } from 'react-icons/fa';
 
-// --- UTILS (UNTOUCHED) ---
+// --- CONSTANTS ---
+// ⚠️ FIX: Use a reliable default image instead of via.placeholder.com
+const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+// --- UTILS ---
 const createImage = (url) =>
   new Promise((resolve, reject) => {
     const image = new Image();
@@ -152,7 +156,6 @@ const LedgerRightPage = ({
                         </span>
                     </div>
 
-                    {/* SAVE BUTTON SECTION */}
                     <div className="mt-6 pt-4 border-t border-[#5c4033]/10">
                         {!isReadOnly ? (
                             <button 
@@ -206,12 +209,9 @@ const LedgerRightPage = ({
 // --- THE BOOK COMPONENT ---
 const LedgerBook = ({ isOpen, onClose }) => {
     const [page, setPage] = useState(0); 
-    
-    // --- YEAR & SAVING STATE LOGIC ---
     const [currentDraftYear, setCurrentDraftYear] = useState(2025); 
     const [viewingYear, setViewingYear] = useState(2025); 
     const [savedLedgers, setSavedLedgers] = useState({}); 
-    
     const [draftData, setDraftData] = useState(INITIAL_LEDGER_DATA);
     const isReadOnly = viewingYear !== currentDraftYear;
     
@@ -220,7 +220,7 @@ const LedgerBook = ({ isOpen, onClose }) => {
         return savedLedgers[viewingYear] || INITIAL_LEDGER_DATA;
     }, [viewingYear, currentDraftYear, draftData, savedLedgers]);
 
-    const [direction, setDirection] = useState(0); // 1 = next, -1 = prev
+    const [direction, setDirection] = useState(0); 
     const [isAnimating, setIsAnimating] = useState(false);
     
     const yearlyStats = useMemo(() => {
@@ -235,21 +235,15 @@ const LedgerBook = ({ isOpen, onClose }) => {
 
     const handleInputChange = useCallback((value, field) => {
       if(isAnimating || isReadOnly) return; 
-
       setDraftData(prev => {
         const newData = prev.map(item => ({...item, expenses: {...item.expenses}})); 
-        if (newData[page]) {
-            newData[page].expenses[field] = Number(value);
-        }
+        if (newData[page]) newData[page].expenses[field] = Number(value);
         return newData;
       });
     }, [page, isAnimating, isReadOnly]);
 
     const handleSaveYear = () => {
-        setSavedLedgers(prev => ({
-            ...prev,
-            [currentDraftYear]: draftData
-        }));
+        setSavedLedgers(prev => ({ ...prev, [currentDraftYear]: draftData }));
         const nextYear = currentDraftYear + 1;
         setCurrentDraftYear(nextYear);
         setDraftData(INITIAL_LEDGER_DATA);
@@ -264,20 +258,14 @@ const LedgerBook = ({ isOpen, onClose }) => {
         if (isAnimating || page >= totalPages - 1) return;
         setDirection(1);
         setIsAnimating(true);
-        setTimeout(() => {
-            setPage(p => p + 1);
-            setIsAnimating(false);
-        }, ANIMATION_DURATION);
+        setTimeout(() => { setPage(p => p + 1); setIsAnimating(false); }, ANIMATION_DURATION);
     };
 
     const handlePrev = () => {
         if (isAnimating || page <= 0) return;
         setDirection(-1);
         setIsAnimating(true);
-        setTimeout(() => {
-            setPage(p => p - 1);
-            setIsAnimating(false);
-        }, ANIMATION_DURATION);
+        setTimeout(() => { setPage(p => p - 1); setIsAnimating(false); }, ANIMATION_DURATION);
     };
 
     let leftBgIdx = page;
@@ -287,15 +275,9 @@ const LedgerBook = ({ isOpen, onClose }) => {
 
     if (isAnimating) {
         if (direction === 1) {
-            leftBgIdx = page;        
-            rightBgIdx = page + 1; 
-            flipperFrontIdx = page;        
-            flipperBackIdx = page + 1;  
+            leftBgIdx = page; rightBgIdx = page + 1; flipperFrontIdx = page; flipperBackIdx = page + 1;  
         } else {
-            leftBgIdx = page - 1;    
-            rightBgIdx = page;        
-            flipperFrontIdx = page - 1; 
-            flipperBackIdx = page;          
+            leftBgIdx = page - 1; rightBgIdx = page; flipperFrontIdx = page - 1; flipperBackIdx = page;          
         }
     }
 
@@ -307,29 +289,20 @@ const LedgerBook = ({ isOpen, onClose }) => {
 
     const bookVariants = {
         hidden: { scale: 0.95, opacity: 0, rotateX: 5, y: 20 },
-        visible: { 
-            scale: 1, opacity: 1, rotateX: 0, y: 0,
-            transition: { type: "spring", damping: 30, stiffness: 200, mass: 0.8 } 
-        },
+        visible: { scale: 1, opacity: 1, rotateX: 0, y: 0, transition: { type: "spring", damping: 30, stiffness: 200, mass: 0.8 } },
         exit: { scale: 0.95, opacity: 0, y: 10, transition: { duration: 0.25, ease: "easeInOut" } }
     };
 
     return (
-      <motion.div 
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 perspective-2000"
-        initial="hidden" animate="visible" exit="exit"
-      >
+      <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4 perspective-2000" initial="hidden" animate="visible" exit="exit">
         <motion.div className="absolute inset-0 bg-black/90" variants={backdropVariants} onClick={onClose} />
         
-        {/* Controls */}
         <motion.div variants={backdropVariants} className="absolute top-8 left-8 z-[60] flex items-center gap-3">
             <div className="relative">
                 <FaHistory className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 text-xs pointer-events-none"/>
                 <select value={viewingYear} onChange={(e) => { setViewingYear(Number(e.target.value)); setPage(0); }} className="pl-8 pr-4 py-2 bg-white/10 text-white border border-white/20 rounded-full text-sm focus:outline-none focus:bg-white/20 hover:bg-white/20 transition-all appearance-none cursor-pointer font-mono">
                     <option value={currentDraftYear} className="bg-gray-900 text-white">Draft: {currentDraftYear}</option>
-                    {Object.keys(savedLedgers).sort((a,b) => b-a).map(y => (
-                        <option key={y} value={y} className="bg-gray-900 text-white">Saved: {y}</option>
-                    ))}
+                    {Object.keys(savedLedgers).sort((a,b) => b-a).map(y => ( <option key={y} value={y} className="bg-gray-900 text-white">Saved: {y}</option> ))}
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-white/50"></div>
             </div>
@@ -388,15 +361,15 @@ const Profile = () => {
 
   // --- DYNAMIC STATE ---
   const [user, setUser] = useState({
-      name: "",
+      name: "Loading...",
       email: "",
-      mobile: "", // New Field
-      dob: "",    // New Field
-      bloodGroup: "", // New Field
-      address: "",    // New Field
+      mobile: "",
+      dob: "",
+      bloodGroup: "",
+      address: "",
       tier: "Silver",
       points: 0,
-      avatar: "https://via.placeholder.com/150", 
+      avatar: DEFAULT_AVATAR, // Uses the constant defined above
       createdAt: null
   });
   const [orders, setOrders] = useState([]);
@@ -416,7 +389,7 @@ const Profile = () => {
         const token = userInfo ? JSON.parse(userInfo).token : null;
 
         if (!token) {
-             // Handle no token (redirect to login or similar)
+             setLoading(false);
              return; 
         }
 
@@ -425,9 +398,21 @@ const Profile = () => {
             const userRes = await fetch('https://fashion-store-ak.onrender.com/api/users/profile', {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            
+            if (userRes.status === 401) {
+                // Token is invalid/expired - Force Logout
+                localStorage.removeItem('userInfo');
+                window.location.reload();
+                return;
+            }
+
             const userData = await userRes.json();
             if(userRes.ok) {
-                setUser(prev => ({ ...prev, ...userData }));
+                setUser(prev => ({ 
+                    ...prev, 
+                    ...userData,
+                    avatar: userData.avatar || DEFAULT_AVATAR 
+                }));
             }
 
             // Fetch My Orders
@@ -498,7 +483,8 @@ const Profile = () => {
   // --- 4. HANDLE SAVE CHANGES ---
   const handleSaveChanges = async () => {
       const userInfo = localStorage.getItem('userInfo');
-      const token = userInfo ? JSON.parse(userInfo).token : null;
+      if (!userInfo) return;
+      const token = JSON.parse(userInfo).token;
       
       try {
           const res = await fetch('https://fashion-store-ak.onrender.com/api/users/profile', {
@@ -514,7 +500,7 @@ const Profile = () => {
                   dob: user.dob,
                   bloodGroup: user.bloodGroup,
                   address: user.address,
-                  avatar: user.avatar // Sends Base64
+                  avatar: user.avatar 
               })
           });
 
@@ -566,7 +552,7 @@ const Profile = () => {
     >
         <div className="absolute left-0 top-0 bottom-0 w-1 bg-black transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out" />
       <div className="w-full md:w-24 h-32 bg-gray-100 overflow-hidden shrink-0 relative">
-        <motion.img whileHover={{ scale: 1.1 }} transition={{ duration: 0.7 }} src={order.orderItems?.[0]?.image || "https://via.placeholder.com/150"} alt="Product" className="w-full h-full object-cover" />
+        <motion.img whileHover={{ scale: 1.1 }} transition={{ duration: 0.7 }} src={order.orderItems?.[0]?.image || DEFAULT_AVATAR} alt="Product" className="w-full h-full object-cover" />
       </div>
       <div className="flex-1 min-w-0 w-full">
         <div className="flex justify-between items-start mb-2">
@@ -603,7 +589,7 @@ const Profile = () => {
         <motion.div variants={itemVariants} className="flex flex-col md:flex-row items-end gap-10 mb-16">
            <div className="relative group">
               <motion.div whileHover={{ scale: 1.02 }} className="w-40 h-40 md:w-56 md:h-56 shadow-2xl overflow-hidden bg-white relative z-10">
-                <img src={user.avatar || "https://via.placeholder.com/150"} alt="Profile" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 ease-in-out" />
+                <img src={user.avatar || DEFAULT_AVATAR} alt="Profile" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 ease-in-out" />
                 <div className="absolute inset-0 border border-black/10"></div>
               </motion.div>
               
@@ -730,7 +716,6 @@ const Profile = () => {
                    </div>
                  )}
 
-                 {/* Placeholder for other tabs */}
                  {(activeTab === 'wishlist' || activeTab === 'addresses') && (
                      <div className="flex items-center justify-center h-64 border border-dashed border-gray-300 rounded-lg">
                          <p className="text-gray-400 text-sm uppercase tracking-widest">Coming Soon</p>
@@ -838,7 +823,6 @@ const Profile = () => {
         )}
       </AnimatePresence>
 
-      {/* LEDGER BOOK */}
       <AnimatePresence>
         {isLedgerOpen && <LedgerBook isOpen={isLedgerOpen} onClose={() => setIsLedgerOpen(false)} />}
       </AnimatePresence>
