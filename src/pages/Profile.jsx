@@ -355,7 +355,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   
   // --- 1. NEW STATE FOR TOAST NOTIFICATION ---
-  const [toast, setToast] = useState(null); // { message: string, type: 'success' | 'error' }
+  const [toast, setToast] = useState(null); 
 
   // --- DYNAMIC STATE ---
   const [user, setUser] = useState({
@@ -380,17 +380,20 @@ const Profile = () => {
   const [isCropping, setIsCropping] = useState(false);
   const fileInputRef = useRef(null);
 
-  // --- HELPER: SHOW TOAST ---
   const showToast = (message) => {
       setToast(message);
-      setTimeout(() => setToast(null), 3000); // Hide after 3 seconds
+      setTimeout(() => setToast(null), 3000); 
+  };
+
+  // --- ⚠️ UPDATED: RETRIEVE TOKEN FROM 'authToken' (MATCHING OTP.JS) ---
+  const getAuthToken = () => {
+      return localStorage.getItem('authToken');
   };
 
   // --- 2. FETCH DATA ON LOAD ---
   useEffect(() => {
     const fetchData = async () => {
-        const userInfo = localStorage.getItem('userInfo');
-        const token = userInfo ? JSON.parse(userInfo).token : null;
+        const token = getAuthToken();
 
         if (!token) {
              setLoading(false);
@@ -398,23 +401,31 @@ const Profile = () => {
         }
 
         try {
+            // Fetch User Profile
             const userRes = await fetch('https://fashion-store-ak.onrender.com/api/users/profile', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             
             if (userRes.status === 401) {
-                localStorage.removeItem('userInfo');
+                // Clear ALL auth data set by OTP.js
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('userEmail');
                 window.location.reload();
                 return;
             }
 
             const userData = await userRes.json();
             if(userRes.ok) {
-                setUser(prev => ({ ...prev, ...userData, avatar: userData.avatar || DEFAULT_AVATAR }));
-                // ⚠️ SHOW WELCOME TOAST ON LOAD
+                setUser(prev => ({ 
+                    ...prev, 
+                    ...userData,
+                    avatar: userData.avatar || DEFAULT_AVATAR 
+                }));
                 showToast(`Welcome back, ${userData.name.split(' ')[0]}!`);
             }
 
+            // Fetch My Orders
             const orderRes = await fetch('https://fashion-store-ak.onrender.com/api/orders/myorders', {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -475,35 +486,19 @@ const Profile = () => {
       });
   };
 
-  // --- 4. HANDLE SAVE CHANGES (DEBUG VERSION) ---
+  // --- 4. HANDLE SAVE CHANGES (UPDATED) ---
   const handleSaveChanges = async () => {
-      console.log("Attempting to save..."); // Debug Log 1
+      console.log("Attempting to save...");
 
-      const userInfo = localStorage.getItem('userInfo');
+      const token = getAuthToken();
       
-      // 1. Check if User Info exists
-      if (!userInfo) {
-          console.error("No userInfo found in LocalStorage");
-          alert("You are not logged in. Please log in again.");
-          return;
-      }
-
-      let token;
-      try {
-          token = JSON.parse(userInfo).token;
-      } catch (error) {
-          console.error("JSON Parse Error:", error);
-          alert("Session data corrupted. Please log out and log in again.");
-          return;
-      }
-
       if (!token) {
-          console.error("No token found in userInfo");
-          alert("Authentication token missing. Please log in again.");
+          console.error("No token found");
+          alert("Authentication missing. Please log in again.");
           return;
       }
 
-      console.log("Token found, sending request..."); // Debug Log 2
+      console.log("Token found, sending request...");
       
       try {
           const res = await fetch('https://fashion-store-ak.onrender.com/api/users/profile', {
@@ -523,19 +518,16 @@ const Profile = () => {
               })
           });
 
-          console.log("Response Status:", res.status); // Debug Log 3
+          console.log("Response Status:", res.status);
 
           const updatedUser = await res.json();
-          console.log("Response Data:", updatedUser); // Debug Log 4
+          console.log("Response Data:", updatedUser);
 
           if (res.ok) {
               setUser(prev => ({ ...prev, ...updatedUser }));
               
-              // Update LocalStorage
-              const ls = JSON.parse(localStorage.getItem('userInfo'));
-              ls.name = updatedUser.name;
-              ls.email = updatedUser.email;
-              localStorage.setItem('userInfo', JSON.stringify(ls));
+              // Update userEmail in LS to keep OTP.js logic sync
+              localStorage.setItem('userEmail', updatedUser.email);
               
               setIsEditing(false);
               showToast("Profile Updated Successfully!");
