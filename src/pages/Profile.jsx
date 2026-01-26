@@ -475,10 +475,35 @@ const Profile = () => {
       });
   };
 
+  // --- 4. HANDLE SAVE CHANGES (DEBUG VERSION) ---
   const handleSaveChanges = async () => {
+      console.log("Attempting to save..."); // Debug Log 1
+
       const userInfo = localStorage.getItem('userInfo');
-      if (!userInfo) return;
-      const token = JSON.parse(userInfo).token;
+      
+      // 1. Check if User Info exists
+      if (!userInfo) {
+          console.error("No userInfo found in LocalStorage");
+          alert("You are not logged in. Please log in again.");
+          return;
+      }
+
+      let token;
+      try {
+          token = JSON.parse(userInfo).token;
+      } catch (error) {
+          console.error("JSON Parse Error:", error);
+          alert("Session data corrupted. Please log out and log in again.");
+          return;
+      }
+
+      if (!token) {
+          console.error("No token found in userInfo");
+          alert("Authentication token missing. Please log in again.");
+          return;
+      }
+
+      console.log("Token found, sending request..."); // Debug Log 2
       
       try {
           const res = await fetch('https://fashion-store-ak.onrender.com/api/users/profile', {
@@ -498,22 +523,28 @@ const Profile = () => {
               })
           });
 
+          console.log("Response Status:", res.status); // Debug Log 3
+
           const updatedUser = await res.json();
+          console.log("Response Data:", updatedUser); // Debug Log 4
+
           if (res.ok) {
               setUser(prev => ({ ...prev, ...updatedUser }));
+              
+              // Update LocalStorage
               const ls = JSON.parse(localStorage.getItem('userInfo'));
               ls.name = updatedUser.name;
+              ls.email = updatedUser.email;
               localStorage.setItem('userInfo', JSON.stringify(ls));
               
               setIsEditing(false);
-              // ⚠️ SHOW SUCCESS TOAST
               showToast("Profile Updated Successfully!");
           } else {
               alert(updatedUser.message || "Failed to update profile");
           }
       } catch (error) {
-          console.error(error);
-          alert("Server Error");
+          console.error("Fetch Error:", error);
+          alert("Server Connection Error. Check console for details.");
       }
   };
 
