@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Cropper from 'react-easy-crop';
 import { 
   FaShoppingBag, FaHeart, FaUser, FaMapMarkerAlt, 
-  FaBook, FaCamera, FaTimes, FaBoxOpen, FaCheck, FaChevronLeft, FaChevronRight, FaSave, FaHistory, FaArrowRight
+  FaBook, FaCamera, FaTimes, FaBoxOpen, FaCheck, FaChevronLeft, FaChevronRight, 
+  FaSave, FaHistory, FaArrowRight, FaTint, FaBirthdayCake, FaPhone, FaLocationArrow
 } from 'react-icons/fa';
 
 // --- UTILS (UNTOUCHED) ---
@@ -23,25 +24,8 @@ async function getCroppedImg(imageSrc, pixelCrop) {
   canvas.width = pixelCrop.width;
   canvas.height = pixelCrop.height;
   ctx.drawImage(image, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, pixelCrop.width, pixelCrop.height);
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => { resolve(URL.createObjectURL(blob)); }, 'image/jpeg');
-  });
+  return canvas.toDataURL('image/jpeg'); // Returns Base64 string
 }
-
-// --- MOCK DATA ---
-const userProfile = {
-  name: "Avishikta Karali",
-  email: "avishikta@fashion.store",
-  tier: "Platinum Icon",
-  points: 4500,
-  avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=500&q=80"
-};
-
-const orders = [
-  { id: "#ORD-2025-001", date: "Oct 24, 2025", status: "In Transit", total: "$245.00", image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&q=80", items: "Oversized Wool Coat" },
-  { id: "#ORD-2025-098", date: "Sep 12, 2025", status: "Delivered", total: "$89.50", image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?q=80&w=400&auto=format&fit=crop", items: "Slim Fit Linen Shirt" },
-  { id: "#ORD-2025-077", date: "Aug 05, 2025", status: "Delivered", total: "$120.00", image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=400&auto=format&fit=crop", items: "Pleated Midi Skirt" }
-];
 
 const INITIAL_LEDGER_DATA = Array.from({ length: 12 }, (_, i) => ({
     monthIndex: i,
@@ -50,7 +34,7 @@ const INITIAL_LEDGER_DATA = Array.from({ length: 12 }, (_, i) => ({
 }));
 
 // ==================================================================================
-// ========================= LEDGER BOOK (ANIMATIONS SMOOTHED) ======================
+// ========================= LEDGER BOOK COMPONENTS =================================
 // ==================================================================================
 
 // --- COMPONENT: Paper Texture ---
@@ -228,10 +212,7 @@ const LedgerBook = ({ isOpen, onClose }) => {
     const [viewingYear, setViewingYear] = useState(2025); 
     const [savedLedgers, setSavedLedgers] = useState({}); 
     
-    // The working data for the current draft year
     const [draftData, setDraftData] = useState(INITIAL_LEDGER_DATA);
-    
-    // Determine which data to show based on viewingYear
     const isReadOnly = viewingYear !== currentDraftYear;
     
     const activeData = useMemo(() => {
@@ -239,7 +220,6 @@ const LedgerBook = ({ isOpen, onClose }) => {
         return savedLedgers[viewingYear] || INITIAL_LEDGER_DATA;
     }, [viewingYear, currentDraftYear, draftData, savedLedgers]);
 
-    // Animation States
     const [direction, setDirection] = useState(0); // 1 = next, -1 = prev
     const [isAnimating, setIsAnimating] = useState(false);
     
@@ -277,9 +257,8 @@ const LedgerBook = ({ isOpen, onClose }) => {
         setPage(0);
     };
 
-    // --- LOOKBOOK PAGINATION LOGIC ---
     const totalPages = 13; 
-    const ANIMATION_DURATION = 600; // Faster duration
+    const ANIMATION_DURATION = 600;
 
     const handleNext = () => {
         if (isAnimating || page >= totalPages - 1) return;
@@ -301,7 +280,6 @@ const LedgerBook = ({ isOpen, onClose }) => {
         }, ANIMATION_DURATION);
     };
 
-    // --- DETERMINE LAYERS ---
     let leftBgIdx = page;
     let rightBgIdx = page;
     let flipperFrontIdx = page;
@@ -309,13 +287,11 @@ const LedgerBook = ({ isOpen, onClose }) => {
 
     if (isAnimating) {
         if (direction === 1) {
-            // NEXT
             leftBgIdx = page;        
             rightBgIdx = page + 1; 
             flipperFrontIdx = page;        
             flipperBackIdx = page + 1;  
         } else {
-            // PREV
             leftBgIdx = page - 1;    
             rightBgIdx = page;        
             flipperFrontIdx = page - 1; 
@@ -323,7 +299,6 @@ const LedgerBook = ({ isOpen, onClose }) => {
         }
     }
 
-    // Modal Animation Variants (Smoother Spring)
     const backdropVariants = {
         hidden: { opacity: 0 },
         visible: { opacity: 1, transition: { duration: 0.5, ease: "easeOut" } },
@@ -331,63 +306,26 @@ const LedgerBook = ({ isOpen, onClose }) => {
     };
 
     const bookVariants = {
-        hidden: { 
-            scale: 0.95, 
-            opacity: 0, 
-            rotateX: 5,
-            y: 20
-        },
+        hidden: { scale: 0.95, opacity: 0, rotateX: 5, y: 20 },
         visible: { 
-            scale: 1, 
-            opacity: 1, 
-            rotateX: 0,
-            y: 0,
-            transition: { 
-                type: "spring", 
-                damping: 30, // Higher damping = less bounce/jitter
-                stiffness: 200, 
-                mass: 0.8
-            } 
+            scale: 1, opacity: 1, rotateX: 0, y: 0,
+            transition: { type: "spring", damping: 30, stiffness: 200, mass: 0.8 } 
         },
-        exit: { 
-            scale: 0.95, 
-            opacity: 0, 
-            y: 10,
-            transition: { duration: 0.25, ease: "easeInOut" } 
-        }
+        exit: { scale: 0.95, opacity: 0, y: 10, transition: { duration: 0.25, ease: "easeInOut" } }
     };
 
     return (
       <motion.div 
         className="fixed inset-0 z-50 flex items-center justify-center p-4 perspective-2000"
-        initial="hidden"
-        animate="visible"
-        exit="exit"
+        initial="hidden" animate="visible" exit="exit"
       >
-        {/* BACKDROP */}
-        <motion.div 
-            className="absolute inset-0 bg-black/90"
-            variants={backdropVariants}
-            onClick={onClose} 
-        />
+        <motion.div className="absolute inset-0 bg-black/90" variants={backdropVariants} onClick={onClose} />
         
-        {/* CONTROLS */}
-        
-        {/* Year Selector */}
-        <motion.div 
-            variants={backdropVariants}
-            className="absolute top-8 left-8 z-[60] flex items-center gap-3"
-        >
+        {/* Controls */}
+        <motion.div variants={backdropVariants} className="absolute top-8 left-8 z-[60] flex items-center gap-3">
             <div className="relative">
                 <FaHistory className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 text-xs pointer-events-none"/>
-                <select 
-                    value={viewingYear} 
-                    onChange={(e) => {
-                        setViewingYear(Number(e.target.value));
-                        setPage(0); 
-                    }}
-                    className="pl-8 pr-4 py-2 bg-white/10 text-white border border-white/20 rounded-full text-sm focus:outline-none focus:bg-white/20 hover:bg-white/20 transition-all appearance-none cursor-pointer font-mono"
-                >
+                <select value={viewingYear} onChange={(e) => { setViewingYear(Number(e.target.value)); setPage(0); }} className="pl-8 pr-4 py-2 bg-white/10 text-white border border-white/20 rounded-full text-sm focus:outline-none focus:bg-white/20 hover:bg-white/20 transition-all appearance-none cursor-pointer font-mono">
                     <option value={currentDraftYear} className="bg-gray-900 text-white">Draft: {currentDraftYear}</option>
                     {Object.keys(savedLedgers).sort((a,b) => b-a).map(y => (
                         <option key={y} value={y} className="bg-gray-900 text-white">Saved: {y}</option>
@@ -396,144 +334,74 @@ const LedgerBook = ({ isOpen, onClose }) => {
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-white/50"></div>
             </div>
         </motion.div>
+        <motion.button onClick={onClose} className="absolute top-8 right-8 z-[60] text-white/70 hover:text-white transition-colors bg-white/10 p-3 rounded-full hover:bg-red-500/80" variants={backdropVariants}><FaTimes size={24} /></motion.button>
+        <motion.button onClick={handlePrev} disabled={page === 0 || isAnimating} className={`absolute left-4 md:left-12 top-1/2 -translate-y-1/2 z-[60] text-white/60 hover:text-white transition-all bg-white/5 hover:bg-white/20 p-4 rounded-full ${page === 0 ? 'opacity-30 cursor-not-allowed' : ''}`} variants={backdropVariants}><FaChevronLeft size={32} /></motion.button>
+        <motion.button onClick={handleNext} disabled={page === totalPages - 1 || isAnimating} className={`absolute right-4 md:right-12 top-1/2 -translate-y-1/2 z-[60] text-white/60 hover:text-white transition-all bg-white/5 hover:bg-white/20 p-4 rounded-full ${page === totalPages - 1 ? 'opacity-30 cursor-not-allowed' : ''}`} variants={backdropVariants}><FaChevronRight size={32} /></motion.button>
 
-        <motion.button 
-            onClick={onClose} 
-            className="absolute top-8 right-8 z-[60] text-white/70 hover:text-white transition-colors bg-white/10 p-3 rounded-full hover:bg-red-500/80"
-            variants={backdropVariants}
-        >
-            <FaTimes size={24} />
-        </motion.button>
-
-        <motion.button 
-            onClick={handlePrev} 
-            disabled={page === 0 || isAnimating}
-            className={`absolute left-4 md:left-12 top-1/2 -translate-y-1/2 z-[60] text-white/60 hover:text-white transition-all bg-white/5 hover:bg-white/20 p-4 rounded-full ${page === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
-            variants={backdropVariants}
-        >
-            <FaChevronLeft size={32} />
-        </motion.button>
-
-        <motion.button 
-            onClick={handleNext} 
-            disabled={page === totalPages - 1 || isAnimating}
-            className={`absolute right-4 md:right-12 top-1/2 -translate-y-1/2 z-[60] text-white/60 hover:text-white transition-all bg-white/5 hover:bg-white/20 p-4 rounded-full ${page === totalPages - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
-            variants={backdropVariants}
-        >
-            <FaChevronRight size={32} />
-        </motion.button>
-
-        {/* === BOOK CONTAINER === */}
-        <motion.div 
-            className="relative w-full max-w-[900px] aspect-[1.7/1] shadow-2xl flex rounded-lg bg-[#2a1d17] perspective-[2500px]"
-            variants={bookVariants}
-            onClick={(e) => e.stopPropagation()}
-        >
-             
-             {/* SPINE SHADOWS */}
+        <motion.div className="relative w-full max-w-[900px] aspect-[1.7/1] shadow-2xl flex rounded-lg bg-[#2a1d17] perspective-[2500px]" variants={bookVariants} onClick={(e) => e.stopPropagation()}>
              <div className="absolute left-1/2 top-0 bottom-0 w-16 -ml-8 bg-gradient-to-r from-transparent via-[rgba(0,0,0,0.3)] to-transparent z-40 pointer-events-none mix-blend-multiply"></div>
              <div className="absolute left-1/2 top-[1%] bottom-[1%] w-[1px] bg-[#5c4033]/30 z-40 opacity-60"></div>
 
-             {/* ================= 1. STATIC LEFT PAGE (BACKGROUND) ================= */}
              <div className="flex-1 rounded-l-lg border-r border-[#dcd6ce] overflow-hidden relative z-0 bg-[#f4f1ea]">
-                <LedgerLeftPage 
-                    key={`left-${leftBgIdx}`} 
-                    pageIndex={leftBgIdx} 
-                    data={activeData[leftBgIdx] || activeData[0]} 
-                    year={viewingYear}
-                />
+                <LedgerLeftPage key={`left-${leftBgIdx}`} pageIndex={leftBgIdx} data={activeData[leftBgIdx] || activeData[0]} year={viewingYear}/>
                 <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[rgba(0,0,0,0.05)] to-transparent z-20 pointer-events-none"></div>
              </div>
 
-             {/* ================= 2. STATIC RIGHT PAGE (BACKGROUND) ================= */}
              <div className="flex-1 rounded-r-lg overflow-hidden relative z-0 bg-[#fffefb]">
-                <LedgerRightPage 
-                    key={`right-${rightBgIdx}`} 
-                    pageIndex={rightBgIdx} 
-                    data={activeData[rightBgIdx] || activeData[0]} 
-                    yearlyStats={yearlyStats}
-                    handleInputChange={handleInputChange}
-                    maxExpense={maxExpense}
-                    totalYearly={totalYearly}
-                    year={viewingYear}
-                    isReadOnly={isReadOnly}
-                    onSaveYear={handleSaveYear}
-                />
+                <LedgerRightPage key={`right-${rightBgIdx}`} pageIndex={rightBgIdx} data={activeData[rightBgIdx] || activeData[0]} yearlyStats={yearlyStats} handleInputChange={handleInputChange} maxExpense={maxExpense} totalYearly={totalYearly} year={viewingYear} isReadOnly={isReadOnly} onSaveYear={handleSaveYear} />
                 <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[rgba(0,0,0,0.05)] to-transparent z-20 pointer-events-none"></div>
              </div>
 
-             {/* ================= 3. FLIPPING PAGE (ANIMATED) ================= */}
              {isAnimating && (
                 <motion.div
                     initial={{ rotateY: direction === 1 ? 0 : -180 }}
                     animate={{ rotateY: direction === 1 ? -180 : 0 }}
                     transition={{ duration: 0.6, ease: [0.645, 0.045, 0.355, 1.000] }}
-                    style={{ 
-                        transformOrigin: 'left center', 
-                        transformStyle: 'preserve-3d',
-                        position: 'absolute', right: 0, top: 0, bottom: 0, width: '50%', zIndex: 30
-                    }}
+                    style={{ transformOrigin: 'left center', transformStyle: 'preserve-3d', position: 'absolute', right: 0, top: 0, bottom: 0, width: '50%', zIndex: 30 }}
                 >
-                    {/* FRONT OF FLIPPER */}
                     <div className="absolute inset-0 w-full h-full bg-[#fffefb] rounded-r-lg backface-hidden overflow-hidden border-l border-[#dcd6ce]" style={{ backfaceVisibility: 'hidden' }}>
-                        <LedgerRightPage 
-                            key={`flip-front-${flipperFrontIdx}`}
-                            pageIndex={flipperFrontIdx} 
-                            data={activeData[flipperFrontIdx] || activeData[0]}
-                            yearlyStats={yearlyStats}
-                            handleInputChange={() => {}} 
-                            maxExpense={maxExpense}
-                            totalYearly={totalYearly}
-                            year={viewingYear}
-                            isReadOnly={isReadOnly}
-                            onSaveYear={handleSaveYear}
-                        />
+                        <LedgerRightPage key={`flip-front-${flipperFrontIdx}`} pageIndex={flipperFrontIdx} data={activeData[flipperFrontIdx] || activeData[0]} yearlyStats={yearlyStats} handleInputChange={() => {}} maxExpense={maxExpense} totalYearly={totalYearly} year={viewingYear} isReadOnly={isReadOnly} onSaveYear={handleSaveYear} />
                          <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[rgba(0,0,0,0.1)] to-transparent z-20 pointer-events-none"></div>
-                         <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 0.1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3, ease: "linear" }}
-                            className="absolute inset-0 bg-gradient-to-l from-transparent to-black pointer-events-none z-25"
-                          />
+                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3, ease: "linear" }} className="absolute inset-0 bg-gradient-to-l from-transparent to-black pointer-events-none z-25" />
                     </div>
-
-                    {/* BACK OF FLIPPER */}
                     <div className="absolute inset-0 w-full h-full bg-[#f4f1ea] rounded-l-lg backface-hidden overflow-hidden border-r border-[#dcd6ce]" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-                        <LedgerLeftPage 
-                            key={`flip-back-${flipperBackIdx}`}
-                            pageIndex={flipperBackIdx}
-                            data={activeData[flipperBackIdx] || activeData[0]}
-                            year={viewingYear}
-                        />
+                        <LedgerLeftPage key={`flip-back-${flipperBackIdx}`} pageIndex={flipperBackIdx} data={activeData[flipperBackIdx] || activeData[0]} year={viewingYear} />
                          <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[rgba(0,0,0,0.1)] to-transparent z-20 pointer-events-none"></div>
-                         <motion.div 
-                            initial={{ opacity: 0.1 }}
-                            animate={{ opacity: 0 }}
-                            transition={{ duration: 0.3, delay: 0.3, ease: "linear" }}
-                            className="absolute inset-0 bg-gradient-to-r from-transparent to-black pointer-events-none z-25"
-                          />
+                         <motion.div initial={{ opacity: 0.1 }} animate={{ opacity: 0 }} transition={{ duration: 0.3, delay: 0.3, ease: "linear" }} className="absolute inset-0 bg-gradient-to-r from-transparent to-black pointer-events-none z-25" />
                     </div>
                 </motion.div>
              )}
-
         </motion.div>
       </motion.div>
     );
 };
 
 // ==================================================================================
-// ========================= LEDGER BOOK (UNTOUCHED END) ============================
+// ========================= MAIN PROFILE COMPONENT =================================
 // ==================================================================================
 
-// --- MAIN COMPONENT REDESIGN ---
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isEditing, setIsEditing] = useState(false);
   const [isLedgerOpen, setIsLedgerOpen] = useState(false);
-  const [user, setUser] = useState(userProfile);
-  
-  // Image Upload Logic
+  const [loading, setLoading] = useState(true);
+
+  // --- DYNAMIC STATE ---
+  const [user, setUser] = useState({
+      name: "",
+      email: "",
+      mobile: "", // New Field
+      dob: "",    // New Field
+      bloodGroup: "", // New Field
+      address: "",    // New Field
+      tier: "Silver",
+      points: 0,
+      avatar: "https://via.placeholder.com/150", 
+      createdAt: null
+  });
+  const [orders, setOrders] = useState([]);
+
+  // Image Upload State
   const [imageSrc, setImageSrc] = useState(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -541,9 +409,42 @@ const Profile = () => {
   const [isCropping, setIsCropping] = useState(false);
   const fileInputRef = useRef(null);
 
+  // --- 1. FETCH DATA ON LOAD ---
   useEffect(() => {
-    const savedAvatar = localStorage.getItem('userAvatar');
-    if (savedAvatar) setUser(prev => ({ ...prev, avatar: savedAvatar }));
+    const fetchData = async () => {
+        const userInfo = localStorage.getItem('userInfo');
+        const token = userInfo ? JSON.parse(userInfo).token : null;
+
+        if (!token) {
+             // Handle no token (redirect to login or similar)
+             return; 
+        }
+
+        try {
+            // Fetch User Profile
+            const userRes = await fetch('https://fashion-store-ak.onrender.com/api/users/profile', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const userData = await userRes.json();
+            if(userRes.ok) {
+                setUser(prev => ({ ...prev, ...userData }));
+            }
+
+            // Fetch My Orders
+            const orderRes = await fetch('https://fashion-store-ak.onrender.com/api/orders/myorders', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const orderData = await orderRes.json();
+            if(orderRes.ok) setOrders(orderData);
+
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    fetchData();
   }, []);
 
   const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => setCroppedAreaPixels(croppedAreaPixels), []);
@@ -557,37 +458,95 @@ const Profile = () => {
     }
   };
   
+  // --- 2. HANDLE CROP ---
   const showCroppedImage = async () => {
     try {
-      const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
-      setUser({ ...user, avatar: croppedImage });
-      localStorage.setItem('userAvatar', croppedImage);
-      setIsCropping(false); setImageSrc(null);
+      const croppedImageBase64 = await getCroppedImg(imageSrc, croppedAreaPixels);
+      setUser(prev => ({ ...prev, avatar: croppedImageBase64 }));
+      setIsCropping(false); 
+      setImageSrc(null);
     } catch (e) { console.error(e); }
   };
 
-  // --- STAGGER CONTAINER ---
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1,
-      transition: { staggerChildren: 0.1, delayChildren: 0.2 }
-    }
+  // --- 3. GET CURRENT LOCATION (Using OpenStreetMap) ---
+  const handleGetLocation = () => {
+      if (!navigator.geolocation) {
+          alert("Geolocation is not supported by your browser");
+          return;
+      }
+
+      navigator.geolocation.getCurrentPosition(async (position) => {
+          const { latitude, longitude } = position.coords;
+          try {
+              // Using free OpenStreetMap Nominatim API for reverse geocoding
+              const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+              const data = await response.json();
+              if (data && data.display_name) {
+                  setUser(prev => ({ ...prev, address: data.display_name }));
+              } else {
+                  alert("Could not fetch address details.");
+              }
+          } catch (error) {
+              console.error("Geocoding error:", error);
+              alert("Error fetching address details.");
+          }
+      }, () => {
+          alert("Unable to retrieve your location. Please check permissions.");
+      });
   };
 
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } }
+  // --- 4. HANDLE SAVE CHANGES ---
+  const handleSaveChanges = async () => {
+      const userInfo = localStorage.getItem('userInfo');
+      const token = userInfo ? JSON.parse(userInfo).token : null;
+      
+      try {
+          const res = await fetch('https://fashion-store-ak.onrender.com/api/users/profile', {
+              method: 'PUT',
+              headers: { 
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                  name: user.name,
+                  email: user.email,
+                  mobile: user.mobile,
+                  dob: user.dob,
+                  bloodGroup: user.bloodGroup,
+                  address: user.address,
+                  avatar: user.avatar // Sends Base64
+              })
+          });
+
+          const updatedUser = await res.json();
+          if (res.ok) {
+              setUser(prev => ({ ...prev, ...updatedUser }));
+              
+              // Optionally update LS name if changed
+              const ls = JSON.parse(localStorage.getItem('userInfo'));
+              ls.name = updatedUser.name;
+              localStorage.setItem('userInfo', JSON.stringify(ls));
+              
+              setIsEditing(false);
+              alert("✅ Profile Updated Successfully!");
+          } else {
+              alert(updatedUser.message || "Failed to update profile");
+          }
+      } catch (error) {
+          console.error(error);
+          alert("Server Error");
+      }
   };
 
-  // NavItem without internal motion variants that might be hidden by parent resets
+  // --- UI VARIANTS ---
+  const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } } };
+  const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } } };
+
+  // --- UI COMPONENTS ---
   const NavItem = ({ icon, label, active, onClick }) => (
     <motion.button 
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.4 }}
-      whileHover={{ x: 5, backgroundColor: "rgba(0,0,0,0.02)" }}
-      whileTap={{ scale: 0.98 }}
+      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}
+      whileHover={{ x: 5, backgroundColor: "rgba(0,0,0,0.02)" }} whileTap={{ scale: 0.98 }}
       onClick={onClick} 
       className={`w-full flex items-center justify-between p-5 mb-2 rounded-none border-l-2 transition-all duration-300 group ${active ? 'border-black bg-gray-50' : 'border-transparent hover:border-gray-300'}`}
     >
@@ -601,32 +560,23 @@ const Profile = () => {
 
   const OrderRow = ({ order }) => (
     <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -5, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
       className="flex flex-col md:flex-row items-center gap-6 p-6 border border-gray-100 bg-white group cursor-pointer relative overflow-hidden transition-all duration-300"
     >
-        {/* Hover Highlight Line */}
         <div className="absolute left-0 top-0 bottom-0 w-1 bg-black transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out" />
-
       <div className="w-full md:w-24 h-32 bg-gray-100 overflow-hidden shrink-0 relative">
-        <motion.img 
-            whileHover={{ scale: 1.1 }}
-            transition={{ duration: 0.7 }}
-            src={order.image} 
-            alt="Product" 
-            className="w-full h-full object-cover" 
-        />
+        <motion.img whileHover={{ scale: 1.1 }} transition={{ duration: 0.7 }} src={order.orderItems?.[0]?.image || "https://via.placeholder.com/150"} alt="Product" className="w-full h-full object-cover" />
       </div>
       <div className="flex-1 min-w-0 w-full">
         <div className="flex justify-between items-start mb-2">
-          <h4 className="font-mono text-xs text-gray-400 tracking-widest">{order.id}</h4>
-          <span className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1 border ${order.status === 'Delivered' ? 'border-gray-200 text-gray-600' : 'border-black text-black'}`}>{order.status}</span>
+          <h4 className="font-mono text-xs text-gray-400 tracking-widest">#{order._id?.slice(-6).toUpperCase()}</h4>
+          <span className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1 border ${order.status === 'Delivered' ? 'border-gray-200 text-gray-600' : 'border-black text-black'}`}>{order.status || "Processing"}</span>
         </div>
-        <h3 className="font-serif text-xl text-gray-900 mb-2 group-hover:underline decoration-1 underline-offset-4">{order.items}</h3>
+        <h3 className="font-serif text-xl text-gray-900 mb-2 group-hover:underline decoration-1 underline-offset-4">{order.orderItems?.length || 0} Items</h3>
         <div className="flex justify-between items-center mt-4 border-t border-gray-50 pt-3">
-          <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">{order.date}</span>
-          <span className="font-serif text-lg italic">{order.total}</span>
+          <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "N/A"}</span>
+          <span className="font-serif text-lg italic">₹{order.totalPrice}</span>
         </div>
       </div>
       <div className="hidden md:flex text-gray-300 group-hover:text-black transition-colors transform group-hover:translate-x-1 duration-300">
@@ -636,52 +586,28 @@ const Profile = () => {
   );
 
   return (
-    <motion.div 
-        className="min-h-screen bg-white text-gray-900 font-sans pb-20 selection:bg-black selection:text-white"
-        initial="hidden"
-        animate="visible"
-        variants={containerVariants}
-    >
+    <motion.div className="min-h-screen bg-white text-gray-900 font-sans pb-20 selection:bg-black selection:text-white" initial="hidden" animate="visible" variants={containerVariants}>
+      
       {/* HEADER WITH PARALLAX & REVEAL */}
       <div className="h-[40vh] w-full relative overflow-hidden bg-gray-900">
-         <motion.div 
-            initial={{ scale: 1.2, opacity: 0 }}
-            animate={{ scale: 1, opacity: 0.4 }}
-            transition={{ duration: 1.5, ease: "easeOut" }}
-            className="absolute inset-0"
-         >
+         <motion.div initial={{ scale: 1.2, opacity: 0 }} animate={{ scale: 1, opacity: 0.4 }} transition={{ duration: 1.5, ease: "easeOut" }} className="absolute inset-0">
             <img src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=2000&auto=format&fit=crop" className="w-full h-full object-cover grayscale" alt="Header"/>
          </motion.div>
          <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
-         
-         {/* Title Reveal */}
          <div className="absolute bottom-0 left-0 p-6 md:p-12 w-full max-w-7xl mx-auto">
-             <motion.h1 
-                className="text-6xl md:text-9xl font-serif text-transparent stroke-text opacity-10 leading-none select-none absolute -top-20 md:-top-32 left-0 w-full"
-                style={{ WebkitTextStroke: "1px rgba(0,0,0,0.2)" }}
-             >
-                PORTFOLIO
-             </motion.h1>
+             <motion.h1 className="text-6xl md:text-9xl font-serif text-transparent stroke-text opacity-10 leading-none select-none absolute -top-20 md:-top-32 left-0 w-full" style={{ WebkitTextStroke: "1px rgba(0,0,0,0.2)" }}>PORTFOLIO</motion.h1>
          </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 -mt-24 relative z-10">
         <motion.div variants={itemVariants} className="flex flex-col md:flex-row items-end gap-10 mb-16">
            <div className="relative group">
-              <motion.div 
-                whileHover={{ scale: 1.02 }}
-                className="w-40 h-40 md:w-56 md:h-56 shadow-2xl overflow-hidden bg-white relative z-10"
-              >
-                <img src={user.avatar} alt="Profile" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 ease-in-out" />
+              <motion.div whileHover={{ scale: 1.02 }} className="w-40 h-40 md:w-56 md:h-56 shadow-2xl overflow-hidden bg-white relative z-10">
+                <img src={user.avatar || "https://via.placeholder.com/150"} alt="Profile" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 ease-in-out" />
                 <div className="absolute inset-0 border border-black/10"></div>
               </motion.div>
               
-              <motion.button 
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => fileInputRef.current.click()} 
-                className="absolute -bottom-4 -right-4 z-20 bg-black text-white w-12 h-12 flex items-center justify-center shadow-lg hover:bg-gray-800 transition-colors cursor-pointer"
-              >
+              <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => fileInputRef.current.click()} className="absolute -bottom-4 -right-4 z-20 bg-black text-white w-12 h-12 flex items-center justify-center shadow-lg hover:bg-gray-800 transition-colors cursor-pointer">
                 <FaCamera size={16} />
               </motion.button>
               <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
@@ -689,13 +615,13 @@ const Profile = () => {
            
            <div className="flex-1 pb-4">
               <motion.div variants={itemVariants}>
-                  <h1 className="text-5xl md:text-7xl font-serif font-medium mb-3 tracking-tight">{user.name}</h1>
+                  <h1 className="text-5xl md:text-7xl font-serif font-medium mb-3 tracking-tight">{user.name || "Loading..."}</h1>
                   <div className="flex flex-wrap items-center gap-6 text-sm text-gray-500 font-medium tracking-widest uppercase">
                       <span>{user.email}</span>
                       <span className="w-1 h-1 bg-black rounded-full"></span>
-                      <span>Est. 2023</span>
+                      <span>Joined {user.createdAt ? new Date(user.createdAt).getFullYear() : '...'}</span>
                       <span className="w-1 h-1 bg-black rounded-full"></span>
-                      <span className="text-black border-b border-black pb-0.5">{user.tier}</span>
+                      <span className="text-black border-b border-black pb-0.5">{user.tier || 'Member'}</span>
                   </div>
               </motion.div>
            </div>
@@ -708,30 +634,15 @@ const Profile = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-          {/* SIDEBAR - DECOUPLED ANIMATION (FIXED DISAPPEARING ISSUE) */}
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="lg:col-span-3 space-y-2"
-          >
+          {/* SIDEBAR */}
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="lg:col-span-3 space-y-2">
             <NavItem icon={<FaUser />} label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
             <NavItem icon={<FaShoppingBag />} label="Orders" active={activeTab === 'orders'} onClick={() => setActiveTab('orders')} />
             <NavItem icon={<FaHeart />} label="Wishlist" active={activeTab === 'wishlist'} onClick={() => setActiveTab('wishlist')} />
             <NavItem icon={<FaMapMarkerAlt />} label="Address" active={activeTab === 'addresses'} onClick={() => setActiveTab('addresses')} />
             
-            <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="pt-12 mt-8 border-t border-gray-100"
-            >
-                <motion.button 
-                    whileHover={{ scale: 1.02, backgroundColor: "#fdfbf7" }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setIsLedgerOpen(true)} 
-                    className="w-full flex flex-col items-center gap-4 text-[#5c4033] p-8 border border-[#5c4033]/20 hover:border-[#5c4033] transition-all group relative overflow-hidden"
-                >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="pt-12 mt-8 border-t border-gray-100">
+                <motion.button whileHover={{ scale: 1.02, backgroundColor: "#fdfbf7" }} whileTap={{ scale: 0.98 }} onClick={() => setIsLedgerOpen(true)} className="w-full flex flex-col items-center gap-4 text-[#5c4033] p-8 border border-[#5c4033]/20 hover:border-[#5c4033] transition-all group relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1 bg-[#5c4033] transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
                     <FaBook className="text-3xl mb-2 opacity-80 group-hover:scale-110 transition-transform duration-500" /> 
                     <div className="text-center">
@@ -745,29 +656,14 @@ const Profile = () => {
           {/* CONTENT */}
           <div className="lg:col-span-9 min-h-[500px]">
              <AnimatePresence mode="wait">
-               <motion.div 
-                 key={activeTab} 
-                 initial={{ opacity: 0, x: 20 }} 
-                 animate={{ opacity: 1, x: 0 }} 
-                 exit={{ opacity: 0, x: -20 }} 
-                 transition={{ duration: 0.5, ease: "circOut" }}
-               >
+               <motion.div key={activeTab} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.5, ease: "circOut" }}>
+                 
                  {activeTab === 'overview' && (
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                          <div className="md:col-span-1">
-                             {/* FASHION CARD */}
-                             <motion.div 
-                                whileHover={{ rotateY: 5, rotateX: 5, scale: 1.02 }}
-                                style={{ perspective: 1000 }}
-                                className="relative w-full aspect-[1.586/1] bg-[#111] text-white overflow-hidden shadow-2xl p-8 flex flex-col justify-between group transition-all"
-                             >
+                             <motion.div whileHover={{ rotateY: 5, rotateX: 5, scale: 1.02 }} style={{ perspective: 1000 }} className="relative w-full aspect-[1.586/1] bg-[#111] text-white overflow-hidden shadow-2xl p-8 flex flex-col justify-between group transition-all">
                                 <div className="absolute inset-0 opacity-30 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
-                                <motion.div 
-                                    className="absolute -right-20 -top-20 w-60 h-60 bg-white/5 rounded-full blur-3xl"
-                                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
-                                    transition={{ duration: 8, repeat: Infinity }}
-                                />
-                                
+                                <motion.div className="absolute -right-20 -top-20 w-60 h-60 bg-white/5 rounded-full blur-3xl" animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }} transition={{ duration: 8, repeat: Infinity }} />
                                 <div className="relative z-10 flex justify-between items-start">
                                     <h3 className="font-serif text-3xl italic">FASHION<span className="text-red-600">.</span></h3>
                                     <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center">
@@ -775,52 +671,70 @@ const Profile = () => {
                                     </div>
                                 </div>
                                 <div className="relative z-10">
-                                    <p className="font-mono text-xl tracking-[0.2em] mb-6 text-gray-300 group-hover:text-white transition-colors">•••• •••• •••• 8842</p>
+                                    <p className="font-mono text-xl tracking-[0.2em] mb-6 text-gray-300 group-hover:text-white transition-colors">•••• •••• •••• {user._id ? user._id.slice(-4) : "8842"}</p>
                                     <div className="flex justify-between items-end border-t border-white/10 pt-4">
                                         <div><p className="text-[9px] uppercase text-gray-500 tracking-widest mb-1">Holder</p><p className="font-sans text-sm font-medium uppercase tracking-wider">{user.name}</p></div>
-                                        <div className="text-right"><p className="text-[9px] uppercase text-gray-500 tracking-widest mb-1">Balance</p><p className="font-serif text-2xl italic">{user.points.toLocaleString()}</p></div>
+                                        <div className="text-right"><p className="text-[9px] uppercase text-gray-500 tracking-widest mb-1">Points</p><p className="font-serif text-2xl italic">{user.points?.toLocaleString()}</p></div>
                                     </div>
                                 </div>
                              </motion.div>
+
+                             {/* Basic User Info Display */}
+                             <div className="mt-8 bg-gray-50 p-6 rounded-md border border-gray-100">
+                                 <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Personal Details</h3>
+                                 <div className="space-y-3">
+                                     <div className="flex items-center gap-3"><FaPhone className="text-gray-300" /><span className="text-sm">{user.mobile || "N/A"}</span></div>
+                                     <div className="flex items-center gap-3"><FaBirthdayCake className="text-gray-300" /><span className="text-sm">{user.dob || "N/A"}</span></div>
+                                     <div className="flex items-center gap-3"><FaTint className="text-gray-300" /><span className="text-sm">{user.bloodGroup || "N/A"}</span></div>
+                                     <div className="flex items-center gap-3"><FaLocationArrow className="text-gray-300" /><span className="text-sm truncate">{user.address || "N/A"}</span></div>
+                                 </div>
+                             </div>
                          </div>
                          
                          <div className="md:col-span-1">
                              <div className="flex justify-between items-baseline mb-6 border-b border-black pb-2">
                                  <h2 className="text-sm font-bold uppercase tracking-[0.2em]">Latest Purchase</h2>
-                                 <button className="text-[10px] uppercase tracking-widest hover:underline decoration-1 underline-offset-4">View All</button>
+                                 <button onClick={() => setActiveTab('orders')} className="text-[10px] uppercase tracking-widest hover:underline decoration-1 underline-offset-4">View All</button>
                              </div>
-                             <OrderRow order={orders[0]} />
+                             {orders.length > 0 ? (
+                                <OrderRow order={orders[0]} />
+                             ) : (
+                                <p className="text-sm text-gray-400 italic">No orders yet.</p>
+                             )}
                              
                              <div className="mt-12 grid grid-cols-2 gap-6">
                                  <motion.div whileHover={{ y: -5 }} className="bg-gray-50 p-8 text-center cursor-pointer border border-transparent hover:border-black transition-all duration-500 group">
                                      <FaBoxOpen className="mx-auto text-3xl text-gray-300 mb-4 group-hover:text-black transition-colors" />
-                                     <span className="block text-4xl font-serif font-medium mb-1">12</span>
+                                     <span className="block text-4xl font-serif font-medium mb-1">{orders.length}</span>
                                      <span className="text-[10px] uppercase text-gray-400 font-bold tracking-widest group-hover:text-black">Orders</span>
                                  </motion.div>
                                  <motion.div whileHover={{ y: -5 }} className="bg-gray-50 p-8 text-center cursor-pointer border border-transparent hover:border-black transition-all duration-500 group">
                                      <FaHeart className="mx-auto text-3xl text-gray-300 mb-4 group-hover:text-red-500 transition-colors" />
-                                     <span className="block text-4xl font-serif font-medium mb-1">05</span>
+                                     <span className="block text-4xl font-serif font-medium mb-1">0</span>
                                      <span className="text-[10px] uppercase text-gray-400 font-bold tracking-widest group-hover:text-black">Saved</span>
                                  </motion.div>
                              </div>
                          </div>
                      </div>
                  )}
+
                  {activeTab === 'orders' && (
                    <div className="space-y-8">
                        <div className="flex justify-between items-end border-b border-black pb-4 mb-8">
                             <h2 className="text-3xl font-serif italic">Order History</h2>
-                            <span className="font-mono text-xs text-gray-400">2025</span>
+                            <span className="font-mono text-xs text-gray-400">{new Date().getFullYear()}</span>
                        </div>
-                       <motion.div 
-                        variants={containerVariants}
-                        initial="hidden"
-                        animate="visible"
-                        className="space-y-4"
-                       >
-                           {orders.map((order) => <OrderRow key={order.id} order={order} />)}
+                       <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-4">
+                           {orders.length > 0 ? orders.map((order) => <OrderRow key={order._id} order={order} />) : <p className="text-gray-400">No orders found.</p>}
                        </motion.div>
                    </div>
+                 )}
+
+                 {/* Placeholder for other tabs */}
+                 {(activeTab === 'wishlist' || activeTab === 'addresses') && (
+                     <div className="flex items-center justify-center h-64 border border-dashed border-gray-300 rounded-lg">
+                         <p className="text-gray-400 text-sm uppercase tracking-widest">Coming Soon</p>
+                     </div>
                  )}
                </motion.div>
              </AnimatePresence>
@@ -828,7 +742,7 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* CROPPER */}
+      {/* CROPPER OVERLAY */}
       {isCropping && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[60] bg-black flex flex-col">
             <div className="relative flex-1 bg-black"><Cropper image={imageSrc} crop={crop} zoom={zoom} aspect={1} onCropChange={setCrop} onCropComplete={onCropComplete} onZoomChange={setZoom} /></div>
@@ -836,22 +750,19 @@ const Profile = () => {
                 <div className="flex-1"><input type="range" value={zoom} min={1} max={3} step={0.1} onChange={(e) => setZoom(e.target.value)} className="w-full accent-black h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"/></div>
                 <div className="flex gap-4">
                     <button onClick={() => { setIsCropping(false); setImageSrc(null); }} className="px-8 py-2 border border-gray-300 text-xs font-bold uppercase tracking-widest hover:bg-gray-100 transition-colors">Cancel</button>
-                    <button onClick={showCroppedImage} className="px-8 py-2 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-gray-800 flex items-center gap-2 transition-colors"><FaCheck /> Save</button>
+                    <button onClick={showCroppedImage} className="px-8 py-2 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-gray-800 flex items-center gap-2 transition-colors"><FaCheck /> Crop</button>
                 </div>
             </div>
         </motion.div>
       )}
 
-      {/* EDIT MODAL */}
+      {/* EDIT MODAL (UPDATED) */}
       <AnimatePresence>
         {isEditing && (
             <div className="fixed inset-0 z-50 overflow-hidden">
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsEditing(false)} className="absolute inset-0 bg-white/80 backdrop-blur-md" />
                 <motion.div 
-                    initial={{ x: '100%' }} 
-                    animate={{ x: 0 }} 
-                    exit={{ x: '100%' }} 
-                    transition={{ type: "spring", damping: 30, stiffness: 300 }} 
+                    initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: "spring", damping: 30, stiffness: 300 }} 
                     className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl flex flex-col border-l border-gray-100"
                 >
                     <div className="p-10 flex justify-between items-center bg-white z-10">
@@ -859,21 +770,66 @@ const Profile = () => {
                         <button onClick={() => setIsEditing(false)} className="w-10 h-10 flex items-center justify-center hover:rotate-90 transition-transform duration-300"><FaTimes size={20}/></button>
                     </div>
                     
-                    <div className="flex-1 overflow-y-auto p-10 space-y-10">
-                        <div className="space-y-8">
-                            <div className="group relative">
-                                <label className="block text-[10px] font-bold uppercase text-gray-400 mb-2 tracking-widest group-focus-within:text-black transition-colors">Full Name</label>
-                                <input type="text" value={user.name} onChange={(e) => setUser({...user, name: e.target.value})} className="w-full border-b border-gray-200 py-3 text-2xl font-serif focus:outline-none focus:border-black bg-transparent transition-colors" />
+                    <div className="flex-1 overflow-y-auto p-10 space-y-8">
+                        {/* NAME */}
+                        <div className="group relative">
+                            <label className="block text-[10px] font-bold uppercase text-gray-400 mb-2 tracking-widest group-focus-within:text-black transition-colors">Full Name</label>
+                            <input type="text" value={user.name} onChange={(e) => setUser({...user, name: e.target.value})} className="w-full border-b border-gray-200 py-3 text-xl font-serif focus:outline-none focus:border-black bg-transparent transition-colors" />
+                        </div>
+                        
+                        {/* EMAIL */}
+                        <div className="group relative">
+                            <label className="block text-[10px] font-bold uppercase text-gray-400 mb-2 tracking-widest group-focus-within:text-black transition-colors">Email Address</label>
+                            <input type="email" value={user.email} onChange={(e) => setUser({...user, email: e.target.value})} className="w-full border-b border-gray-200 py-3 text-xl font-serif focus:outline-none focus:border-black bg-transparent transition-colors" />
+                        </div>
+
+                        {/* MOBILE */}
+                        <div className="group relative">
+                            <label className="block text-[10px] font-bold uppercase text-gray-400 mb-2 tracking-widest group-focus-within:text-black transition-colors">Mobile Number</label>
+                            <div className="flex items-center gap-3">
+                                <FaPhone className="text-gray-300" />
+                                <input type="tel" value={user.mobile || ''} onChange={(e) => setUser({...user, mobile: e.target.value})} placeholder="+91..." className="w-full border-b border-gray-200 py-3 text-xl font-serif focus:outline-none focus:border-black bg-transparent transition-colors" />
                             </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-6">
+                            {/* DOB */}
                             <div className="group relative">
-                                <label className="block text-[10px] font-bold uppercase text-gray-400 mb-2 tracking-widest group-focus-within:text-black transition-colors">Email Address</label>
-                                <input type="email" value={user.email} onChange={(e) => setUser({...user, email: e.target.value})} className="w-full border-b border-gray-200 py-3 text-2xl font-serif focus:outline-none focus:border-black bg-transparent transition-colors" />
+                                <label className="block text-[10px] font-bold uppercase text-gray-400 mb-2 tracking-widest group-focus-within:text-black transition-colors">Date of Birth</label>
+                                <input type="date" value={user.dob || ''} onChange={(e) => setUser({...user, dob: e.target.value})} className="w-full border-b border-gray-200 py-3 text-lg font-serif focus:outline-none focus:border-black bg-transparent transition-colors" />
+                            </div>
+
+                            {/* BLOOD GROUP */}
+                            <div className="group relative">
+                                <label className="block text-[10px] font-bold uppercase text-gray-400 mb-2 tracking-widest group-focus-within:text-black transition-colors">Blood Group</label>
+                                <select value={user.bloodGroup || ''} onChange={(e) => setUser({...user, bloodGroup: e.target.value})} className="w-full border-b border-gray-200 py-3 text-lg font-serif focus:outline-none focus:border-black bg-transparent transition-colors appearance-none cursor-pointer">
+                                    <option value="">Select</option>
+                                    <option value="A+">A+</option>
+                                    <option value="A-">A-</option>
+                                    <option value="B+">B+</option>
+                                    <option value="B-">B-</option>
+                                    <option value="O+">O+</option>
+                                    <option value="O-">O-</option>
+                                    <option value="AB+">AB+</option>
+                                    <option value="AB-">AB-</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* ADDRESS with GET LOCATION */}
+                        <div className="group relative">
+                            <label className="block text-[10px] font-bold uppercase text-gray-400 mb-2 tracking-widest group-focus-within:text-black transition-colors">Address</label>
+                            <div className="relative">
+                                <textarea rows="3" value={user.address || ''} onChange={(e) => setUser({...user, address: e.target.value})} className="w-full border border-gray-200 p-3 text-sm font-sans focus:outline-none focus:border-black bg-gray-50 rounded-none transition-colors resize-none mb-2" placeholder="Enter address or fetch location..." />
+                                <button type="button" onClick={handleGetLocation} className="absolute right-2 bottom-4 text-[10px] bg-black text-white px-2 py-1 uppercase tracking-widest flex items-center gap-1 hover:bg-gray-800 transition-colors">
+                                    <FaLocationArrow /> Get Location
+                                </button>
                             </div>
                         </div>
                     </div>
                     
-                    <div className="p-10 bg-gray-50">
-                        <button onClick={() => setIsEditing(false)} className="w-full bg-black text-white py-5 font-bold uppercase tracking-[0.2em] text-xs hover:bg-gray-800 transition-colors">
+                    <div className="p-10 bg-gray-50 border-t border-gray-100">
+                        <button onClick={handleSaveChanges} className="w-full bg-black text-white py-5 font-bold uppercase tracking-[0.2em] text-xs hover:bg-gray-800 transition-colors shadow-lg hover:shadow-xl">
                             Save Changes
                         </button>
                     </div>
