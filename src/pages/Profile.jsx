@@ -4,11 +4,11 @@ import Cropper from 'react-easy-crop';
 import { 
   FaShoppingBag, FaHeart, FaUser, FaMapMarkerAlt, 
   FaBook, FaCamera, FaTimes, FaBoxOpen, FaCheck, FaChevronLeft, FaChevronRight, 
-  FaSave, FaHistory, FaArrowRight, FaTint, FaBirthdayCake, FaPhone, FaLocationArrow
+  FaSave, FaHistory, FaArrowRight, FaTint, FaBirthdayCake, FaPhone, FaLocationArrow,
+  FaCheckCircle
 } from 'react-icons/fa';
 
 // --- CONSTANTS ---
-// ⚠️ FIX: Use a reliable default image instead of via.placeholder.com
 const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
 // --- UTILS ---
@@ -28,7 +28,7 @@ async function getCroppedImg(imageSrc, pixelCrop) {
   canvas.width = pixelCrop.width;
   canvas.height = pixelCrop.height;
   ctx.drawImage(image, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, pixelCrop.width, pixelCrop.height);
-  return canvas.toDataURL('image/jpeg'); // Returns Base64 string
+  return canvas.toDataURL('image/jpeg');
 }
 
 const INITIAL_LEDGER_DATA = Array.from({ length: 12 }, (_, i) => ({
@@ -41,7 +41,6 @@ const INITIAL_LEDGER_DATA = Array.from({ length: 12 }, (_, i) => ({
 // ========================= LEDGER BOOK COMPONENTS =================================
 // ==================================================================================
 
-// --- COMPONENT: Paper Texture ---
 const PaperGrain = () => (
   <svg className="absolute inset-0 w-full h-full pointer-events-none z-30 opacity-[0.08] mix-blend-multiply">
     <filter id='paperNoise'>
@@ -52,7 +51,6 @@ const PaperGrain = () => (
   </svg>
 );
 
-// --- MEMOIZED INPUT ROW ---
 const LedgerInputRow = memo(({ label, value, onChange, disabled }) => (
   <div className="flex items-center justify-between border-b border-[#5c4033]/20 pb-1 mb-3 hover:bg-[#5c4033]/5 transition-colors px-2">
     <label className="font-serif italic text-gray-700 w-32 text-sm">{label}</label>
@@ -70,7 +68,6 @@ const LedgerInputRow = memo(({ label, value, onChange, disabled }) => (
   </div>
 ));
 
-// --- SUB-COMPONENT: LEFT PAGE (Summary) ---
 const LedgerLeftPage = ({ pageIndex, data, year }) => {
     if (pageIndex === 12) {
         return (
@@ -118,7 +115,6 @@ const LedgerLeftPage = ({ pageIndex, data, year }) => {
     );
 };
 
-// --- SUB-COMPONENT: RIGHT PAGE (Inputs/Graph) ---
 const LedgerRightPage = ({ 
     pageIndex, data, yearlyStats, handleInputChange, 
     maxExpense, totalYearly, year, isReadOnly, onSaveYear 
@@ -206,7 +202,6 @@ const LedgerRightPage = ({
     );
 };
 
-// --- THE BOOK COMPONENT ---
 const LedgerBook = ({ isOpen, onClose }) => {
     const [page, setPage] = useState(0); 
     const [currentDraftYear, setCurrentDraftYear] = useState(2025); 
@@ -358,6 +353,9 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLedgerOpen, setIsLedgerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // --- 1. NEW STATE FOR TOAST NOTIFICATION ---
+  const [toast, setToast] = useState(null); // { message: string, type: 'success' | 'error' }
 
   // --- DYNAMIC STATE ---
   const [user, setUser] = useState({
@@ -369,7 +367,7 @@ const Profile = () => {
       address: "",
       tier: "Silver",
       points: 0,
-      avatar: DEFAULT_AVATAR, // Uses the constant defined above
+      avatar: DEFAULT_AVATAR,
       createdAt: null
   });
   const [orders, setOrders] = useState([]);
@@ -382,7 +380,13 @@ const Profile = () => {
   const [isCropping, setIsCropping] = useState(false);
   const fileInputRef = useRef(null);
 
-  // --- 1. FETCH DATA ON LOAD ---
+  // --- HELPER: SHOW TOAST ---
+  const showToast = (message) => {
+      setToast(message);
+      setTimeout(() => setToast(null), 3000); // Hide after 3 seconds
+  };
+
+  // --- 2. FETCH DATA ON LOAD ---
   useEffect(() => {
     const fetchData = async () => {
         const userInfo = localStorage.getItem('userInfo');
@@ -394,13 +398,11 @@ const Profile = () => {
         }
 
         try {
-            // Fetch User Profile
             const userRes = await fetch('https://fashion-store-ak.onrender.com/api/users/profile', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             
             if (userRes.status === 401) {
-                // Token is invalid/expired - Force Logout
                 localStorage.removeItem('userInfo');
                 window.location.reload();
                 return;
@@ -408,14 +410,11 @@ const Profile = () => {
 
             const userData = await userRes.json();
             if(userRes.ok) {
-                setUser(prev => ({ 
-                    ...prev, 
-                    ...userData,
-                    avatar: userData.avatar || DEFAULT_AVATAR 
-                }));
+                setUser(prev => ({ ...prev, ...userData, avatar: userData.avatar || DEFAULT_AVATAR }));
+                // ⚠️ SHOW WELCOME TOAST ON LOAD
+                showToast(`Welcome back, ${userData.name.split(' ')[0]}!`);
             }
 
-            // Fetch My Orders
             const orderRes = await fetch('https://fashion-store-ak.onrender.com/api/orders/myorders', {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -443,7 +442,6 @@ const Profile = () => {
     }
   };
   
-  // --- 2. HANDLE CROP ---
   const showCroppedImage = async () => {
     try {
       const croppedImageBase64 = await getCroppedImg(imageSrc, croppedAreaPixels);
@@ -453,17 +451,14 @@ const Profile = () => {
     } catch (e) { console.error(e); }
   };
 
-  // --- 3. GET CURRENT LOCATION (Using OpenStreetMap) ---
   const handleGetLocation = () => {
       if (!navigator.geolocation) {
           alert("Geolocation is not supported by your browser");
           return;
       }
-
       navigator.geolocation.getCurrentPosition(async (position) => {
           const { latitude, longitude } = position.coords;
           try {
-              // Using free OpenStreetMap Nominatim API for reverse geocoding
               const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
               const data = await response.json();
               if (data && data.display_name) {
@@ -480,7 +475,6 @@ const Profile = () => {
       });
   };
 
-  // --- 4. HANDLE SAVE CHANGES ---
   const handleSaveChanges = async () => {
       const userInfo = localStorage.getItem('userInfo');
       if (!userInfo) return;
@@ -507,14 +501,13 @@ const Profile = () => {
           const updatedUser = await res.json();
           if (res.ok) {
               setUser(prev => ({ ...prev, ...updatedUser }));
-              
-              // Optionally update LS name if changed
               const ls = JSON.parse(localStorage.getItem('userInfo'));
               ls.name = updatedUser.name;
               localStorage.setItem('userInfo', JSON.stringify(ls));
               
               setIsEditing(false);
-              alert("✅ Profile Updated Successfully!");
+              // ⚠️ SHOW SUCCESS TOAST
+              showToast("Profile Updated Successfully!");
           } else {
               alert(updatedUser.message || "Failed to update profile");
           }
@@ -524,11 +517,9 @@ const Profile = () => {
       }
   };
 
-  // --- UI VARIANTS ---
   const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } } };
   const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } } };
 
-  // --- UI COMPONENTS ---
   const NavItem = ({ icon, label, active, onClick }) => (
     <motion.button 
       initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}
@@ -550,7 +541,7 @@ const Profile = () => {
       whileHover={{ y: -5, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
       className="flex flex-col md:flex-row items-center gap-6 p-6 border border-gray-100 bg-white group cursor-pointer relative overflow-hidden transition-all duration-300"
     >
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-black transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out" />
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-black transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out" />
       <div className="w-full md:w-24 h-32 bg-gray-100 overflow-hidden shrink-0 relative">
         <motion.img whileHover={{ scale: 1.1 }} transition={{ duration: 0.7 }} src={order.orderItems?.[0]?.image || DEFAULT_AVATAR} alt="Product" className="w-full h-full object-cover" />
       </div>
@@ -574,7 +565,7 @@ const Profile = () => {
   return (
     <motion.div className="min-h-screen bg-white text-gray-900 font-sans pb-20 selection:bg-black selection:text-white" initial="hidden" animate="visible" variants={containerVariants}>
       
-      {/* HEADER WITH PARALLAX & REVEAL */}
+      {/* HEADER */}
       <div className="h-[40vh] w-full relative overflow-hidden bg-gray-900">
          <motion.div initial={{ scale: 1.2, opacity: 0 }} animate={{ scale: 1, opacity: 0.4 }} transition={{ duration: 1.5, ease: "easeOut" }} className="absolute inset-0">
             <img src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=2000&auto=format&fit=crop" className="w-full h-full object-cover grayscale" alt="Header"/>
@@ -620,7 +611,6 @@ const Profile = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-          {/* SIDEBAR */}
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="lg:col-span-3 space-y-2">
             <NavItem icon={<FaUser />} label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
             <NavItem icon={<FaShoppingBag />} label="Orders" active={activeTab === 'orders'} onClick={() => setActiveTab('orders')} />
@@ -639,7 +629,6 @@ const Profile = () => {
             </motion.div>
           </motion.div>
 
-          {/* CONTENT */}
           <div className="lg:col-span-9 min-h-[500px]">
              <AnimatePresence mode="wait">
                <motion.div key={activeTab} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.5, ease: "circOut" }}>
@@ -665,7 +654,6 @@ const Profile = () => {
                                 </div>
                              </motion.div>
 
-                             {/* Basic User Info Display */}
                              <div className="mt-8 bg-gray-50 p-6 rounded-md border border-gray-100">
                                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Personal Details</h3>
                                  <div className="space-y-3">
@@ -741,7 +729,7 @@ const Profile = () => {
         </motion.div>
       )}
 
-      {/* EDIT MODAL (UPDATED) */}
+      {/* EDIT MODAL */}
       <AnimatePresence>
         {isEditing && (
             <div className="fixed inset-0 z-50 overflow-hidden">
@@ -756,19 +744,15 @@ const Profile = () => {
                     </div>
                     
                     <div className="flex-1 overflow-y-auto p-10 space-y-8">
-                        {/* NAME */}
+                        {/* INPUT FIELDS (Keep all your existing inputs here) */}
                         <div className="group relative">
                             <label className="block text-[10px] font-bold uppercase text-gray-400 mb-2 tracking-widest group-focus-within:text-black transition-colors">Full Name</label>
                             <input type="text" value={user.name} onChange={(e) => setUser({...user, name: e.target.value})} className="w-full border-b border-gray-200 py-3 text-xl font-serif focus:outline-none focus:border-black bg-transparent transition-colors" />
                         </div>
-                        
-                        {/* EMAIL */}
                         <div className="group relative">
                             <label className="block text-[10px] font-bold uppercase text-gray-400 mb-2 tracking-widest group-focus-within:text-black transition-colors">Email Address</label>
                             <input type="email" value={user.email} onChange={(e) => setUser({...user, email: e.target.value})} className="w-full border-b border-gray-200 py-3 text-xl font-serif focus:outline-none focus:border-black bg-transparent transition-colors" />
                         </div>
-
-                        {/* MOBILE */}
                         <div className="group relative">
                             <label className="block text-[10px] font-bold uppercase text-gray-400 mb-2 tracking-widest group-focus-within:text-black transition-colors">Mobile Number</label>
                             <div className="flex items-center gap-3">
@@ -776,15 +760,11 @@ const Profile = () => {
                                 <input type="tel" value={user.mobile || ''} onChange={(e) => setUser({...user, mobile: e.target.value})} placeholder="+91..." className="w-full border-b border-gray-200 py-3 text-xl font-serif focus:outline-none focus:border-black bg-transparent transition-colors" />
                             </div>
                         </div>
-
                         <div className="grid grid-cols-2 gap-6">
-                            {/* DOB */}
                             <div className="group relative">
                                 <label className="block text-[10px] font-bold uppercase text-gray-400 mb-2 tracking-widest group-focus-within:text-black transition-colors">Date of Birth</label>
                                 <input type="date" value={user.dob || ''} onChange={(e) => setUser({...user, dob: e.target.value})} className="w-full border-b border-gray-200 py-3 text-lg font-serif focus:outline-none focus:border-black bg-transparent transition-colors" />
                             </div>
-
-                            {/* BLOOD GROUP */}
                             <div className="group relative">
                                 <label className="block text-[10px] font-bold uppercase text-gray-400 mb-2 tracking-widest group-focus-within:text-black transition-colors">Blood Group</label>
                                 <select value={user.bloodGroup || ''} onChange={(e) => setUser({...user, bloodGroup: e.target.value})} className="w-full border-b border-gray-200 py-3 text-lg font-serif focus:outline-none focus:border-black bg-transparent transition-colors appearance-none cursor-pointer">
@@ -800,8 +780,6 @@ const Profile = () => {
                                 </select>
                             </div>
                         </div>
-
-                        {/* ADDRESS with GET LOCATION */}
                         <div className="group relative">
                             <label className="block text-[10px] font-bold uppercase text-gray-400 mb-2 tracking-widest group-focus-within:text-black transition-colors">Address</label>
                             <div className="relative">
@@ -825,6 +803,22 @@ const Profile = () => {
 
       <AnimatePresence>
         {isLedgerOpen && <LedgerBook isOpen={isLedgerOpen} onClose={() => setIsLedgerOpen(false)} />}
+      </AnimatePresence>
+
+      {/* --- ⚠️ NEW: TOAST NOTIFICATION COMPONENT --- */}
+      <AnimatePresence>
+        {toast && (
+            <motion.div 
+                initial={{ opacity: 0, y: 50 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                exit={{ opacity: 0, y: 20 }} 
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="fixed bottom-8 right-8 z-[100] bg-black text-white px-6 py-4 rounded shadow-2xl flex items-center gap-4 border-l-4 border-green-500"
+            >
+                <FaCheckCircle className="text-green-400 text-xl" />
+                <span className="font-serif italic tracking-wide text-sm">{toast}</span>
+            </motion.div>
+        )}
       </AnimatePresence>
 
     </motion.div>
