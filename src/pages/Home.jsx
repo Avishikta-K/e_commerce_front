@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom'; // 1. Import useLocation
+import { Link, useLocation } from 'react-router-dom'; 
 import { 
   FaArrowRight, FaTruck, FaShieldAlt, FaHeadset, FaTag, FaFire, FaPaperPlane, 
   FaSnowflake, FaClock, FaCalendarAlt, FaSun, FaUmbrella, FaAdjust,
@@ -7,7 +7,7 @@ import {
 } from 'react-icons/fa';
 import { motion, AnimatePresence, useScroll, useAnimation } from 'framer-motion';
 
-// --- NEW: INTRO OVERLAY COMPONENT ---
+// --- INTRO OVERLAY COMPONENT ---
 const IntroOverlay = ({ onComplete }) => {
   return (
     <motion.div 
@@ -15,7 +15,6 @@ const IntroOverlay = ({ onComplete }) => {
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.5, delay: 0.8 } }}
     >
-      {/* 1. Text Animation */}
       <div className="relative z-20 flex items-center gap-2 md:gap-4 overflow-hidden">
         <motion.h1 
           initial={{ y: 100, opacity: 0 }}
@@ -41,20 +40,16 @@ const IntroOverlay = ({ onComplete }) => {
         </motion.h1>
       </div>
 
-      {/* 2. Loading Line */}
-      <motion.div 
-        className="mt-8 h-[2px] bg-white/20 w-64 rounded-full overflow-hidden relative z-20"
-      >
+      <motion.div className="mt-8 h-[2px] bg-white/20 w-64 rounded-full overflow-hidden relative z-20">
         <motion.div 
           initial={{ width: "0%" }}
           animate={{ width: "100%" }}
           transition={{ duration: 2.5, ease: "easeInOut" }}
-          onAnimationComplete={onComplete} // Triggers the exit logic in Home
+          onAnimationComplete={onComplete} 
           className="h-full bg-blue-500"
         />
       </motion.div>
 
-      {/* 3. Curtain Reveal Effect (Background Split) */}
       <motion.div 
         initial={{ height: "50%" }}
         exit={{ height: "0%" }}
@@ -98,7 +93,9 @@ const Reveal = ({ children, variants, className, transition }) => {
 };
 
 // --- DATA SECTIONS ---
-const heroSlides = [
+
+// ⚠️ RENAMED TO DEFAULT SLIDES (Fallback)
+const defaultSlides = [
   { id: 1, image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1500&q=80", title: "Discover Your New Look", subtitle: "Explore our latest collection of trendy and comfortable garments." },
   { id: 2, image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1500&q=80", title: "Summer Essentials", subtitle: "Lightweight fabrics and vibrant colors for the perfect sunny day." },
   { id: 3, image: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1500&q=80", title: "Winter Collection", subtitle: "Stay warm and stylish with our premium outerwear selection." }
@@ -305,27 +302,33 @@ const FireworkBurst = ({ x, y, color, delay }) => {
   );
 };
 
-// --- CINEMATIC HERO COMPONENT ---
-const CinematicHero = () => {
+// --- CINEMATIC HERO COMPONENT (Updated to accept slides prop) ---
+const CinematicHero = ({ slides = [] }) => {
+  // Use default if slides is empty
+  const activeSlides = slides.length > 0 ? slides : defaultSlides; 
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
 
   useEffect(() => {
+    // Safety check: if activeSlides changes length (e.g. from 0 to X), reset index to prevent out of bounds
+    if(currentIndex >= activeSlides.length) setCurrentIndex(0);
+
     const timer = setInterval(() => {
       setDirection(1);
-      setCurrentIndex((prev) => (prev + 1) % heroSlides.length);
+      setCurrentIndex((prev) => (prev + 1) % activeSlides.length);
     }, 6000); 
     return () => clearInterval(timer);
-  }, [currentIndex]);
+  }, [currentIndex, activeSlides.length]);
 
   const nextSlide = () => {
     setDirection(1);
-    setCurrentIndex((prev) => (prev + 1) % heroSlides.length);
+    setCurrentIndex((prev) => (prev + 1) % activeSlides.length);
   };
 
   const prevSlide = () => {
     setDirection(-1);
-    setCurrentIndex((prev) => (prev === 0 ? heroSlides.length - 1 : prev - 1));
+    setCurrentIndex((prev) => (prev === 0 ? activeSlides.length - 1 : prev - 1));
   };
 
   const handleDotClick = (index) => {
@@ -365,6 +368,9 @@ const CinematicHero = () => {
     }
   };
 
+  // Safe Access to current slide
+  const currentSlide = activeSlides[currentIndex] || defaultSlides[0];
+
   return (
     <div className="relative h-[700px] w-full overflow-hidden bg-gray-900">
       <AnimatePresence initial={false} mode="popLayout">
@@ -378,7 +384,7 @@ const CinematicHero = () => {
           style={{ zIndex: 1 }}
         >
           <motion.img 
-            src={heroSlides[currentIndex].image} 
+            src={currentSlide.image} 
             alt="Hero" 
             className="w-full h-full object-cover"
             initial={{ scale: 1.2 }}
@@ -400,32 +406,32 @@ const CinematicHero = () => {
               className="max-w-xl pointer-events-auto"
             >
               <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 md:p-12 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden group">
-                 <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
-                 
-                 <motion.div variants={childVariants} className="flex items-center gap-3 text-blue-300 font-bold uppercase tracking-widest text-sm mb-4">
-                    <span className="w-8 h-[2px] bg-blue-400"></span>
-                    Trending Collection
-                 </motion.div>
-                 
-                 <motion.h1 variants={childVariants} className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
-                   {heroSlides[currentIndex].title.split(" ").map((word, i) => (
-                     <span key={i} className="inline-block mr-3">{word}</span>
-                   ))}
-                 </motion.h1>
-                 
-                 <motion.p variants={childVariants} className="text-gray-300 text-lg mb-8 leading-relaxed">
-                   {heroSlides[currentIndex].subtitle}
-                 </motion.p>
+                  <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+                  
+                  <motion.div variants={childVariants} className="flex items-center gap-3 text-blue-300 font-bold uppercase tracking-widest text-sm mb-4">
+                     <span className="w-8 h-[2px] bg-blue-400"></span>
+                     Trending Collection
+                  </motion.div>
+                  
+                  <motion.h1 variants={childVariants} className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+                    {currentSlide.title ? currentSlide.title.split(" ").map((word, i) => (
+                      <span key={i} className="inline-block mr-3">{word}</span>
+                    )) : "New Arrival"}
+                  </motion.h1>
+                  
+                  <motion.p variants={childVariants} className="text-gray-300 text-lg mb-8 leading-relaxed">
+                    {currentSlide.subtitle}
+                  </motion.p>
 
-                 <motion.div variants={childVariants} className="flex gap-4">
-                   <Link to="/shop" className="bg-white text-gray-900 px-8 py-4 rounded-full font-bold hover:bg-blue-50 transition-colors flex items-center gap-2 shadow-lg group/btn">
-                     Shop Now 
-                     <FaArrowRight className="group-hover/btn:translate-x-1 transition-transform" />
-                   </Link>
-                   <Link to="/lookbook" className="px-8 py-4 rounded-full border border-white/30 text-white font-bold hover:bg-white/10 transition-colors flex items-center justify-center">
-                     View Lookbook
-                   </Link>
-                 </motion.div>
+                  <motion.div variants={childVariants} className="flex gap-4">
+                    <Link to="/shop" className="bg-white text-gray-900 px-8 py-4 rounded-full font-bold hover:bg-blue-50 transition-colors flex items-center gap-2 shadow-lg group/btn">
+                      Shop Now 
+                      <FaArrowRight className="group-hover/btn:translate-x-1 transition-transform" />
+                    </Link>
+                    <Link to="/lookbook" className="px-8 py-4 rounded-full border border-white/30 text-white font-bold hover:bg-white/10 transition-colors flex items-center justify-center">
+                      View Lookbook
+                    </Link>
+                  </motion.div>
               </div>
             </motion.div>
         </AnimatePresence>
@@ -433,7 +439,7 @@ const CinematicHero = () => {
 
       <div className="absolute bottom-10 right-4 md:right-10 z-30 flex items-center gap-6">
         <div className="flex gap-2">
-           {heroSlides.map((_, idx) => (
+           {activeSlides.map((_, idx) => (
              <button
                key={idx}
                onClick={() => handleDotClick(idx)}
@@ -464,8 +470,8 @@ const CinematicHero = () => {
 
 
 const Home = () => {
-  const location = useLocation(); // 2. Access current location state
-  const [showIntro, setShowIntro] = useState(location.state?.showIntro || false); // 3. Init based on state
+  const location = useLocation(); 
+  const [showIntro, setShowIntro] = useState(location.state?.showIntro || false); 
   const [time, setTime] = useState(new Date());
   const [timeLeft, setTimeLeft] = useState({});
   const [saleStatus, setSaleStatus] = useState("UPCOMING");
@@ -473,9 +479,24 @@ const Home = () => {
   const [isWheelOpen, setIsWheelOpen] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState(1);
 
-  // ... (REST OF THE COMPONENT LOGIC REMAINS UNCHANGED) ...
-  // To keep the file concise, I've kept the rendering logic the same as before.
-  // The 'return' block below includes the conditional IntroOverlay logic.
+  // --- NEW: API SLIDES STATE ---
+  const [apiSlides, setApiSlides] = useState([]);
+
+  // --- NEW: FETCH API BANNERS ---
+  useEffect(() => {
+    const fetchBanners = async () => {
+        try {
+            const res = await fetch('https://fashion-store-ak.onrender.com/api/banners');
+            const data = await res.json();
+            if(Array.isArray(data) && data.length > 0) {
+                setApiSlides(data);
+            }
+        } catch(err) {
+            console.log("Using default slides due to error or empty API");
+        }
+    };
+    fetchBanners();
+  }, []);
 
   // --- STANDARD EFFECTS ---
   const snowflakes = useMemo(() => Array.from({ length: 15 }).map((_, i) => ({ id: i, left: Math.random() * 100, delay: Math.random() * 5, duration: 5 + Math.random() * 5, size: Math.random() * 20 + 10 })), []);
@@ -548,7 +569,8 @@ const Home = () => {
         )}
       </AnimatePresence>
         
-      <CinematicHero />
+      {/* PASS API SLIDES TO CINEMATIC HERO */}
+      <CinematicHero slides={apiSlides} />
 
       {/* SERVICES */}
       <div className="bg-white py-12 border-b">
@@ -865,30 +887,30 @@ const Home = () => {
       <div className="bg-gray-50 py-20 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12">
-             <div>
-                <Reveal 
-                  variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }}
-                  className="text-blue-600 font-bold tracking-wider uppercase text-sm mb-2"
-                >
-                  Hot This Week
-                </Reveal>
-                <h2 className="text-4xl font-bold flex items-center gap-3 text-gray-900">
-                   <motion.span variants={fireAnimation} animate="animate" className="text-orange-500"> <FaFire /> </motion.span> 
-                   Trending Now
-                </h2>
-             </div>
-             <motion.button 
-               whileHover={{ x: 5 }}
-               className="hidden md:flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium mt-4 md:mt-0"
-             >
-               View All Products <FaArrowRight size={12} />
-             </motion.button>
+              <div>
+                 <Reveal 
+                   variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }}
+                   className="text-blue-600 font-bold tracking-wider uppercase text-sm mb-2"
+                 >
+                   Hot This Week
+                 </Reveal>
+                 <h2 className="text-4xl font-bold flex items-center gap-3 text-gray-900">
+                    <motion.span variants={fireAnimation} animate="animate" className="text-orange-500"> <FaFire /> </motion.span> 
+                    Trending Now
+                 </h2>
+              </div>
+              <motion.button 
+                whileHover={{ x: 5 }}
+                className="hidden md:flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium mt-4 md:mt-0"
+              >
+                View All Products <FaArrowRight size={12} />
+              </motion.button>
           </div>
 
           <Reveal 
-             className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 auto-rows-[350px]"
-             variants={staggerContainer}
-          >
+              className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 auto-rows-[350px]"
+              variants={staggerContainer}
+           >
             {trendingProducts.map((product, index) => {
                let spanClass = "";
                if (product.size === "large") spanClass = "md:col-span-2 md:row-span-2";
