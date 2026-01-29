@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useMotionTemplate, useMotionValue, useSpring, AnimatePresence } from 'framer-motion';
-import { FaGoogle, FaUserCircle, FaLock } from 'react-icons/fa';
-import { supabase } from '../supabase'; // Make sure you created src/supabase.js from previous steps
+import { FaGoogle, FaApple, FaArrowRight, FaLock, FaUserCircle } from 'react-icons/fa';
+import { sendOtp } from '../utils/api'; // <--- IMPORT API
 
 // --- COMPONENT: GOOGLE ACCOUNT MODAL ---
 const GoogleAccountModal = ({ isOpen, onClose, onSelect }) => {
@@ -11,15 +11,6 @@ const GoogleAccountModal = ({ isOpen, onClose, onSelect }) => {
     { id: 2, name: "Fashion Store Dev", email: "dev@fashion.store", color: "bg-blue-600" },
     { id: 3, name: "Use another account", email: "", color: "bg-gray-500", icon: true }
   ];
-
-  // State for manual email entry
-  const [customEmail, setCustomEmail] = useState("");
-  const [showCustomInput, setShowCustomInput] = useState(false);
-
-  const handleCustomSubmit = (e) => {
-      e.preventDefault();
-      if(customEmail) onSelect({ email: customEmail });
-  }
 
   return (
     <AnimatePresence>
@@ -41,53 +32,33 @@ const GoogleAccountModal = ({ isOpen, onClose, onSelect }) => {
             >
               <div className="p-6 pb-2 text-center">
                  <FaGoogle className="text-3xl text-gray-700 mx-auto mb-4" />
-                 <h3 className="text-xl font-medium text-gray-800">Sign in</h3>
+                 <h3 className="text-xl font-medium text-gray-800">Choose an account</h3>
                  <p className="text-sm text-gray-600">to continue to Fashion.Store</p>
               </div>
 
-              {!showCustomInput ? (
-                  <div className="py-4">
-                     {accounts.map((acc) => (
-                       <div 
-                         key={acc.id}
-                         onClick={() => {
-                             if(acc.id === 3) setShowCustomInput(true);
-                             else onSelect(acc);
-                         }}
-                         className="px-6 py-3 flex items-center gap-4 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-none transition-colors"
-                       >
-                         {acc.icon ? (
-                           <div className={`w-8 h-8 rounded-full ${acc.color} flex items-center justify-center text-white text-xs`}><FaUserCircle /></div>
-                         ) : (
-                           <div className={`w-8 h-8 rounded-full ${acc.color} flex items-center justify-center text-white font-bold text-sm`}>{acc.name.charAt(0)}</div>
-                         )}
-                         <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-800">{acc.name}</p>
-                            {acc.email && <p className="text-xs text-gray-500">{acc.email}</p>}
-                         </div>
+              <div className="py-4">
+                 {accounts.map((acc) => (
+                   <div 
+                     key={acc.id}
+                     onClick={() => onSelect(acc)}
+                     className="px-6 py-3 flex items-center gap-4 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-none transition-colors"
+                   >
+                     {acc.icon ? (
+                       <div className={`w-8 h-8 rounded-full ${acc.color} flex items-center justify-center text-white text-xs`}>
+                         <FaUserCircle />
                        </div>
-                     ))}
-                  </div>
-              ) : (
-                  <div className="p-6">
-                      <form onSubmit={handleCustomSubmit}>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                          <input 
-                            type="email" 
-                            autoFocus
-                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none mb-4"
-                            placeholder="name@example.com"
-                            value={customEmail}
-                            onChange={(e) => setCustomEmail(e.target.value)}
-                            required
-                          />
-                          <div className="flex justify-end gap-2">
-                              <button type="button" onClick={() => setShowCustomInput(false)} className="text-sm text-blue-600 font-bold px-4 py-2">Back</button>
-                              <button type="submit" className="bg-blue-600 text-white text-sm font-bold px-6 py-2 rounded hover:bg-blue-700">Next</button>
-                          </div>
-                      </form>
-                  </div>
-              )}
+                     ) : (
+                       <div className={`w-8 h-8 rounded-full ${acc.color} flex items-center justify-center text-white font-bold text-sm`}>
+                         {acc.name.charAt(0)}
+                       </div>
+                     )}
+                     <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-800">{acc.name}</p>
+                        {acc.email && <p className="text-xs text-gray-500">{acc.email}</p>}
+                     </div>
+                   </div>
+                 ))}
+              </div>
 
               <div className="bg-gray-50 p-4 border-t border-gray-200 text-xs text-gray-500 text-center">
                  To continue, Google will share your name, email address, and language preference with Fashion.Store.
@@ -170,33 +141,25 @@ const Login = () => {
     setShowGoogleModal(true);
   };
 
-  // --- 2. UPDATED: Call Supabase API ---
+  // --- 2. UPDATED: Call Backend API ---
   const handleAccountSelect = async (account) => {
     setShowGoogleModal(false);
     setIsLoading(true);
     
     try {
-        // Send OTP via Supabase
-        const { error } = await supabase.auth.signInWithOtp({
-            email: account.email,
-            options: {
-                // Ensure this is set to avoid magic link default behavior if not configured
-                shouldCreateUser: true, 
-            }
-        });
-
-        if (error) throw error;
+        // Call your Render Backend
+        const response = await sendOtp(account.email);
         
-        // Navigate to OTP page
+        // Pass Email AND the Code (for demo visuals) to OTP page
         navigate('/otp', { 
             state: { 
-                email: account.email 
+                email: account.email, 
+                demoCode: response.code 
             } 
         });
-
     } catch (error) {
-        console.error("Login Error:", error.message);
-        alert(error.message); // Likely "Signups not allowed" or rate limit
+        console.error("Login Error:", error);
+        alert("Failed to connect to server. Please try again.");
         setIsLoading(false);
     }
   };
@@ -372,6 +335,7 @@ const Login = () => {
                         </>
                     )}
                     </motion.button>
+                    {/* ... other buttons ... */}
                 </div>
                 </motion.div>
             )}

@@ -26,4 +26,4 @@ dist-ssr
 ...
 .DS_Store
 *.sw?
-.env
+config.bat
